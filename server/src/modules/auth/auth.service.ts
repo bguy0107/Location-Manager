@@ -39,7 +39,7 @@ export async function login(dto: LoginDto) {
     data: { token: refreshTokenValue, userId: user.id, expiresAt },
   });
 
-  return { accessToken, refreshToken: refreshTokenValue, user: sanitizeUser(user) };
+  return { accessToken, refreshToken: refreshTokenValue, user: sanitizeUser({ ...user, role: user.role as Role }) };
 }
 
 export async function refresh(refreshTokenValue: string) {
