@@ -32,6 +32,8 @@ cd "Location Manager3"
 npm install
 ```
 
+This installs all dependencies for both the client and server workspaces, including the Prisma CLI and client (`prisma` and `@prisma/client`).
+
 ### 2. Set up the server environment
 
 ```bash
@@ -75,11 +77,10 @@ Or using pgAdmin / any PostgreSQL GUI, create a database named `location_manager
 
 ```bash
 cd server
-npm run db:generate
 npm run db:migrate
 ```
 
-When prompted, give the migration a name (e.g., `init`).
+When prompted, give the migration a name (e.g., `init`). This applies the SQL migrations to your database and automatically generates the Prisma client. If you ever need to regenerate the client manually (e.g., after a schema change without a migration), run `npm run db:generate`.
 
 ### 6. Seed the database
 
