@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import * as usersRepo from './users.repository';
 import { CreateUserDto, UpdateUserDto, UsersQuery } from './users.schemas';
 import { NotFoundError, ConflictError, ForbiddenError, BadRequestError } from '../../utils/errors';
