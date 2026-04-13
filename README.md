@@ -64,9 +64,33 @@ cp client/.env.local.example client/.env.local
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
-### 4. Set up PostgreSQL
+### 4. Install and start PostgreSQL
 
-Create the database:
+If you don't have PostgreSQL 14+ installed:
+
+**macOS (Homebrew):**
+```bash
+brew install postgresql@14
+brew services start postgresql@14
+```
+
+**Ubuntu / Debian:**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+**Windows:**
+Download and run the installer from https://www.postgresql.org/download/windows/. During setup, note the password you set for the `postgres` user — you'll need it for `DATABASE_URL`.
+
+**Verify it's running:**
+```bash
+psql -U postgres -c "\l"
+```
+
+Then create the database:
 ```bash
 psql -U postgres -c "CREATE DATABASE location_manager;"
 ```
