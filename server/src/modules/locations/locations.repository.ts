@@ -124,6 +124,26 @@ export async function remove(id: string) {
   return prisma.location.delete({ where: { id }, select: { id: true } });
 }
 
+export async function isUserAssignedToLocation(userId: string, locationId: string) {
+  const row = await prisma.userLocation.findUnique({
+    where: { userId_locationId: { userId, locationId } },
+    select: { userId: true },
+  });
+  return row !== null;
+}
+
+export async function updateAssignments(id: string, userIds: string[]) {
+  return prisma.$transaction(async (tx) => {
+    await tx.userLocation.deleteMany({ where: { locationId: id } });
+    if (userIds.length > 0) {
+      await tx.userLocation.createMany({
+        data: userIds.map((userId) => ({ locationId: id, userId })),
+      });
+    }
+    return tx.location.findUniqueOrThrow({ where: { id }, select: locationSelect });
+  });
+}
+
 export async function countAll() {
   return prisma.location.count();
 }

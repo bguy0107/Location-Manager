@@ -20,9 +20,15 @@ export function LocationTable({ locations, isLoading, onEdit }: LocationTablePro
   const deleteLocation = useDeleteLocation();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canEdit =
-    currentUser?.role === Role.ADMIN || currentUser?.role === Role.MANAGER;
   const canDelete = currentUser?.role === Role.ADMIN;
+
+  const canEditLocation = (loc: Location) => {
+    if (currentUser?.role === Role.ADMIN) return true;
+    if (currentUser?.role === Role.MANAGER) {
+      return loc.users.some((ul) => ul.user.id === currentUser.id);
+    }
+    return false;
+  };
 
   const handleDelete = async (id: string) => {
     if (confirmDeleteId === id) {
@@ -84,7 +90,7 @@ export function LocationTable({ locations, isLoading, onEdit }: LocationTablePro
       header: '',
       render: (loc: Location) => (
         <div className="flex items-center gap-2 justify-end">
-          {canEdit && (
+          {canEditLocation(loc) && (
             <Button
               variant="ghost"
               size="sm"

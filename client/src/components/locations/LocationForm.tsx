@@ -26,9 +26,10 @@ interface LocationFormProps {
   location?: Location;
   onSubmit: (data: LocationFormData) => void | Promise<void>;
   isLoading?: boolean;
+  assignmentsOnly?: boolean;
 }
 
-export function LocationForm({ location, onSubmit, isLoading }: LocationFormProps) {
+export function LocationForm({ location, onSubmit, isLoading, assignmentsOnly }: LocationFormProps) {
   const { data: usersData } = useUsers({ limit: 100, isActive: true });
   const isEditing = !!location;
 
@@ -82,14 +83,16 @@ export function LocationForm({ location, onSubmit, isLoading }: LocationFormProp
           label="Location name"
           placeholder="Downtown Store"
           error={errors.name?.message}
-          required
+          required={!assignmentsOnly}
+          disabled={assignmentsOnly}
           {...register('name')}
         />
         <Input
           label="Store number"
           placeholder="STR-001"
           error={errors.storeNumber?.message}
-          required
+          required={!assignmentsOnly}
+          disabled={assignmentsOnly}
           {...register('storeNumber')}
         />
       </div>
@@ -98,7 +101,8 @@ export function LocationForm({ location, onSubmit, isLoading }: LocationFormProp
         label="Street address"
         placeholder="123 Main Street"
         error={errors.address?.message}
-        required
+        required={!assignmentsOnly}
+        disabled={assignmentsOnly}
         {...register('address')}
       />
 
@@ -107,7 +111,8 @@ export function LocationForm({ location, onSubmit, isLoading }: LocationFormProp
           label="City"
           placeholder="New York"
           error={errors.city?.message}
-          required
+          required={!assignmentsOnly}
+          disabled={assignmentsOnly}
           className="col-span-2 sm:col-span-1"
           {...register('city')}
         />
@@ -115,14 +120,16 @@ export function LocationForm({ location, onSubmit, isLoading }: LocationFormProp
           label="State"
           placeholder="NY"
           error={errors.state?.message}
-          required
+          required={!assignmentsOnly}
+          disabled={assignmentsOnly}
           {...register('state')}
         />
         <Input
           label="Zip code"
           placeholder="10001"
           error={errors.zip?.message}
-          required
+          required={!assignmentsOnly}
+          disabled={assignmentsOnly}
           {...register('zip')}
         />
       </div>
@@ -130,9 +137,10 @@ export function LocationForm({ location, onSubmit, isLoading }: LocationFormProp
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-700">Notes (optional)</label>
         <textarea
-          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
           rows={3}
           placeholder="Any additional notes about this location..."
+          disabled={assignmentsOnly}
           {...register('notes')}
         />
         {errors.notes && <p className="text-xs text-red-600">{errors.notes.message}</p>}
@@ -155,9 +163,7 @@ export function LocationForm({ location, onSubmit, isLoading }: LocationFormProp
                     <input
                       type="checkbox"
                       checked={field.value.includes(u.id)}
-                      onChange={() =>
-                        toggleUser(u.id, field.value, field.onChange)
-                      }
+                      onChange={() => toggleUser(u.id, field.value, field.onChange)}
                       className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
                     <span className="font-medium">{u.name}</span>
@@ -175,7 +181,7 @@ export function LocationForm({ location, onSubmit, isLoading }: LocationFormProp
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" isLoading={isLoading} className="flex-1">
-          {isEditing ? 'Save changes' : 'Create location'}
+          {assignmentsOnly ? 'Save assignments' : isEditing ? 'Save changes' : 'Create location'}
         </Button>
       </div>
     </form>

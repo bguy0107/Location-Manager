@@ -1,6 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import * as locationsService from './locations.service';
-import { createLocationSchema, updateLocationSchema, locationsQuerySchema } from './locations.schemas';
+import {
+  createLocationSchema,
+  updateLocationSchema,
+  updateAssignmentsSchema,
+  locationsQuerySchema,
+} from './locations.schemas';
 
 export async function listLocations(req: Request, res: Response, next: NextFunction) {
   try {
@@ -24,7 +29,7 @@ export async function getLocation(req: Request, res: Response, next: NextFunctio
 export async function createLocation(req: Request, res: Response, next: NextFunction) {
   try {
     const dto = createLocationSchema.parse(req.body);
-    const location = await locationsService.createLocation(dto);
+    const location = await locationsService.createLocation(dto, req.user);
     res.status(201).json({ success: true, data: location });
   } catch (err) {
     next(err);
@@ -34,7 +39,17 @@ export async function createLocation(req: Request, res: Response, next: NextFunc
 export async function updateLocation(req: Request, res: Response, next: NextFunction) {
   try {
     const dto = updateLocationSchema.parse(req.body);
-    const location = await locationsService.updateLocation(req.params.id, dto);
+    const location = await locationsService.updateLocation(req.params.id, dto, req.user);
+    res.json({ success: true, data: location });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateAssignments(req: Request, res: Response, next: NextFunction) {
+  try {
+    const dto = updateAssignmentsSchema.parse(req.body);
+    const location = await locationsService.updateLocationAssignments(req.params.id, dto, req.user);
     res.json({ success: true, data: location });
   } catch (err) {
     next(err);

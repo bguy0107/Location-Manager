@@ -68,6 +68,72 @@ export interface DashboardStats {
   locations: { total: number };
 }
 
+export enum RequestingParty {
+  LAW_ENFORCEMENT = 'LAW_ENFORCEMENT',
+  INTERNAL = 'INTERNAL',
+  INSURANCE = 'INSURANCE',
+}
+
+export enum RequestStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  FULFILLED = 'FULFILLED',
+  DENIED = 'DENIED',
+}
+
+export interface SurveillanceStatusHistory {
+  id: string;
+  fromStatus: RequestStatus;
+  toStatus: RequestStatus;
+  changedAt: string;
+  changedBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+export interface SurveillanceRequest {
+  id: string;
+  requestingParty: RequestingParty;
+  status: RequestStatus;
+  footageStartAt: string;
+  footageEndAt: string;
+  cameras: number[];
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  location: {
+    id: string;
+    name: string;
+    storeNumber: string;
+  };
+  requestedBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  statusHistory?: SurveillanceStatusHistory[];
+}
+
+export interface SurveillanceFormData {
+  locationId: string;
+  requestingParty: RequestingParty;
+  footageStartAt: string;
+  footageEndAt: string;
+  cameras: { value: string }[];
+  notes?: string;
+}
+
+export interface CreateSurveillancePayload {
+  locationId: string;
+  requestingParty: string;
+  footageStartAt: string;
+  footageEndAt: string;
+  cameras: number[];
+  notes?: string;
+}
+
 // Form types
 export interface LoginFormData {
   email: string;

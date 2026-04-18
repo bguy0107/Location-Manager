@@ -10,8 +10,12 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { usersRoutes } from './modules/users/users.routes';
 import { locationsRoutes } from './modules/locations/locations.routes';
 import { statsRoutes } from './modules/stats/stats.routes';
+import { surveillanceRoutes } from './modules/surveillance/surveillance.routes';
 
 const app = express();
+
+// Trust the first proxy hop (nginx) so rate limiters see the real client IP
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -45,6 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/locations', locationsRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/surveillance', surveillanceRoutes);
 
 // 404 handler
 app.use((_req, res) => {

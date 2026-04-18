@@ -8,32 +8,35 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  name          String
-  email         String         @unique
-  password      String
-  role          Role           @default(USER)
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  locations     UserLocation[]
-  refreshTokens RefreshToken[]
+  id                        String                      @id @default(uuid())
+  name                      String
+  email                     String                      @unique
+  password                  String
+  role                      Role                        @default(USER)
+  isActive                  Boolean                     @default(true)
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+  locations                 UserLocation[]
+  refreshTokens             RefreshToken[]
+  surveillanceRequests      SurveillanceRequest[]
+  surveillanceStatusChanges SurveillanceStatusHistory[]
 
   @@map("users")
 }
 
 model Location {
-  id          String         @id @default(uuid())
-  name        String
-  storeNumber String
-  address     String
-  city        String
-  state       String
-  zip         String
-  notes       String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  users       UserLocation[]
+  id                   String                 @id @default(uuid())
+  name                 String
+  storeNumber          String
+  address              String
+  city                 String
+  state                String
+  zip                  String
+  notes                String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  users                UserLocation[]
+  surveillanceRequests SurveillanceRequest[]
 
   @@map("locations")
 }
@@ -60,8 +63,54 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model SurveillanceRequest {
+  id              String          @id @default(uuid())
+  locationId      String
+  requestedById   String
+  requestingParty RequestingParty
+  status          RequestStatus   @default(PENDING)
+  footageStartAt  DateTime
+  footageEndAt    DateTime
+  cameras         Int[]
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  location      Location                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  requestedBy   User                        @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  statusHistory SurveillanceStatusHistory[]
+
+  @@map("surveillance_requests")
+}
+
+model SurveillanceStatusHistory {
+  id          String              @id @default(uuid())
+  requestId   String
+  changedById String
+  fromStatus  RequestStatus
+  toStatus    RequestStatus
+  changedAt   DateTime            @default(now())
+  request     SurveillanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  changedBy   User                @relation(fields: [changedById], references: [id])
+
+  @@map("surveillance_status_history")
+}
+
 enum Role {
   ADMIN
   MANAGER
   USER
+}
+
+enum RequestingParty {
+  LAW_ENFORCEMENT
+  INTERNAL
+  INSURANCE
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  FULFILLED
+  DENIED
 }

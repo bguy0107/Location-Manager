@@ -32,6 +32,11 @@ async function updateLocation(id: string, body: unknown): Promise<Location> {
   return data.data;
 }
 
+async function updateLocationAssignments(id: string, body: { userIds: string[] }): Promise<Location> {
+  const { data } = await api.patch<ApiResponse<Location>>(`/locations/${id}/assignments`, body);
+  return data.data;
+}
+
 async function deleteLocation(id: string): Promise<void> {
   await api.delete(`/locations/${id}`);
 }
@@ -76,6 +81,20 @@ export function useUpdateLocation(id: string) {
     },
     onError: (err: AxiosError<{ message: string }>) => {
       toast.error(err.response?.data?.message ?? 'Failed to update location');
+    },
+  });
+}
+
+export function useUpdateLocationAssignments(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { userIds: string[] }) => updateLocationAssignments(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      toast.success('Location assignments updated');
+    },
+    onError: (err: AxiosError<{ message: string }>) => {
+      toast.error(err.response?.data?.message ?? 'Failed to update assignments');
     },
   });
 }

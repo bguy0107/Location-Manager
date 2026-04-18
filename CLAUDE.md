@@ -2,13 +2,17 @@
 
 This file contains everything needed to continue developing the Location Manager project efficiently. Read this before making any changes.
 
+**Before making any change:** run the existing test suite (`npm run test` from the root) and confirm it passes. After making changes, run tests again to verify nothing is broken.
+
 ---
 
 ## Project Overview
 
 An internal full-stack web application for managing physical store locations and staff members. Only admins and managers can create users (no self-registration). Regular users get read-only access to their assigned locations.
 
-**Ports:** Frontend → `localhost:3000` | Backend → `localhost:5000`
+**Deployment target:** Ubuntu Server 24.04
+
+**Ports:** Frontend → `localhost:3000` | Backend → `localhost:5001`
 
 ---
 
@@ -150,14 +154,14 @@ Page  →  hook (TanStack Query)  →  api.ts (Axios)  →  Express API
 | Create/edit users | ✓ | ✓ | ✗ |
 | Assign ADMIN role | ✓ | ✗ | ✗ |
 | Delete users | ✓ | ✗ | ✗ |
-| Create/edit locations | ✓ | ✓ | ✗ |
+| Create/edit locations | ✓ | ✗ | ✗ |
 | Delete locations | ✓ | ✗ | ✗ |
 | View all locations | ✓ | ✓ | ✗ |
 | View assigned locations only | ✓ | ✓ | ✓ |
 
 **Important RBAC rules enforced in services:**
 - `users.service.ts` — MANAGER cannot create/update a user with `role: ADMIN`, and cannot modify a user who is already an ADMIN
-- `locations.service.ts` — USER role receives a `userId` filter so they only see their own assigned locations
+- `locations.service.ts` — only ADMIN can create or edit location details (name, address, etc.); MANAGER can only manage user assignments on locations they are assigned to; USER role receives a `userId` filter so they only see their own assigned locations
 - Route-level enforcement via `requireRole()` is a second layer; business logic rules are in the service
 
 ---

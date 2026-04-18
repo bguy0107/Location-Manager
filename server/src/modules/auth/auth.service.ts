@@ -1,10 +1,15 @@
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { prisma } from '../../utils/prisma';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt';
 import { UnauthorizedError } from '../../utils/errors';
 import { config } from '../../config';
 import { Role } from '../../types';
 import { LoginDto } from './auth.schemas';
+
+// Pre-computed once at startup to prevent user enumeration via response timing.
+// Always run bcrypt.compare regardless of whether the user exists.
+const DUMMY_HASH = bcrypt.hashSync('__timing_protection__', 12);
 
 // Strip password from user object before returning
 function sanitizeUser(user: { id: string; name: string; email: string; role: Role; isActive: boolean }) {
@@ -14,12 +19,10 @@ function sanitizeUser(user: { id: string; name: string; email: string; role: Rol
 export async function login(dto: LoginDto) {
   const user = await prisma.user.findUnique({ where: { email: dto.email } });
 
-  if (!user || !user.isActive) {
-    throw new UnauthorizedError('Invalid email or password');
-  }
+  // Always run bcrypt to prevent timing-based user enumeration
+  const passwordMatch = await bcrypt.compare(dto.password, user?.password ?? DUMMY_HASH);
 
-  const passwordMatch = await bcrypt.compare(dto.password, user.password);
-  if (!passwordMatch) {
+  if (!user || !user.isActive || !passwordMatch) {
     throw new UnauthorizedError('Invalid email or password');
   }
 
@@ -30,10 +33,8 @@ export async function login(dto: LoginDto) {
   });
 
   const refreshTokenValue = signRefreshToken({ sub: user.id });
-
-  // Persist refresh token (15 days)
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 15);
+  const decoded = jwt.decode(refreshTokenValue) as { exp?: number } | null;
+  const expiresAt = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
   await prisma.refreshToken.create({
     data: { token: refreshTokenValue, userId: user.id, expiresAt },
@@ -60,9 +61,6 @@ export async function refresh(refreshTokenValue: string) {
     throw new UnauthorizedError('Account is disabled');
   }
 
-  // Rotate: delete old token, issue new pair
-  await prisma.refreshToken.delete({ where: { token: refreshTokenValue } });
-
   const newAccessToken = signAccessToken({
     sub: stored.user.id,
     email: stored.user.email,
@@ -70,13 +68,16 @@ export async function refresh(refreshTokenValue: string) {
   });
 
   const newRefreshToken = signRefreshToken({ sub: stored.user.id });
+  const decoded = jwt.decode(newRefreshToken) as { exp?: number } | null;
+  const expiresAt = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 15);
-
-  await prisma.refreshToken.create({
-    data: { token: newRefreshToken, userId: stored.user.id, expiresAt },
-  });
+  // Rotate atomically: delete old, create new in one transaction
+  await prisma.$transaction([
+    prisma.refreshToken.delete({ where: { token: refreshTokenValue } }),
+    prisma.refreshToken.create({
+      data: { token: newRefreshToken, userId: stored.user.id, expiresAt },
+    }),
+  ]);
 
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 }

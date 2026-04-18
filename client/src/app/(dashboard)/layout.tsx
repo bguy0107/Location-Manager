@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   MapPin,
+  Camera,
   LogOut,
   Menu,
   X,
@@ -28,7 +29,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/users', label: 'Users', icon: Users, roles: [Role.ADMIN, Role.MANAGER] },
-  { href: '/locations', label: 'Locations', icon: MapPin },
+  { href: '/locations', label: 'Location Administration', icon: MapPin },
+  { href: '/surveillance', label: 'Surveillance', icon: Camera },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

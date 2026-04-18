@@ -30,6 +30,11 @@ export const locationsQuerySchema = z.object({
   city: z.string().optional(),
 });
 
+export const updateAssignmentsSchema = z.object({
+  userIds: z.array(z.string().uuid()),
+});
+
 export type CreateLocationDto = z.infer<typeof createLocationSchema>;
 export type UpdateLocationDto = z.infer<typeof updateLocationSchema>;
+export type UpdateAssignmentsDto = z.infer<typeof updateAssignmentsSchema>;
 export type LocationsQuery = z.infer<typeof locationsQuerySchema>;

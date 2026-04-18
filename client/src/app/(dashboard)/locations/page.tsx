@@ -26,8 +26,7 @@ export default function LocationsPage() {
     state: stateFilter || undefined,
   });
 
-  const canCreate =
-    currentUser?.role === Role.ADMIN || currentUser?.role === Role.MANAGER;
+  const canCreate = currentUser?.role === Role.ADMIN;
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -54,7 +53,7 @@ export default function LocationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <MapPin className="h-6 w-6 text-primary-600" />
-            Locations
+            Location Administration
           </h1>
           {data && (
             <p className="text-sm text-gray-500 mt-1">

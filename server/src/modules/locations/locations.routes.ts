@@ -13,9 +13,12 @@ locationsRoutes.use(authenticate);
 locationsRoutes.get('/', controller.listLocations);
 locationsRoutes.get('/:id', controller.getLocation);
 
-// Only ADMIN and MANAGER can create/update
-locationsRoutes.post('/', requireRole(Role.ADMIN, Role.MANAGER), controller.createLocation);
-locationsRoutes.put('/:id', requireRole(Role.ADMIN, Role.MANAGER), controller.updateLocation);
+// Only ADMIN can create or update location info
+locationsRoutes.post('/', requireRole(Role.ADMIN), controller.createLocation);
+locationsRoutes.put('/:id', requireRole(Role.ADMIN), controller.updateLocation);
+
+// ADMIN and MANAGER can update user assignments (manager scoped to their locations)
+locationsRoutes.patch('/:id/assignments', requireRole(Role.ADMIN, Role.MANAGER), controller.updateAssignments);
 
 // Only ADMIN can delete
 locationsRoutes.delete('/:id', requireRole(Role.ADMIN), controller.deleteLocation);
