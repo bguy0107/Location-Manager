@@ -8,6 +8,7 @@ import {
   Users,
   MapPin,
   Camera,
+  Building2,
   LogOut,
   Menu,
   X,
@@ -28,8 +29,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/users', label: 'Users', icon: Users, roles: [Role.ADMIN, Role.MANAGER, Role.TECHNICIAN] },
-  { href: '/locations', label: 'Location Administration', icon: MapPin },
+  { href: '/franchises', label: 'Franchises', icon: Building2, roles: [Role.ADMIN] },
+  { href: '/users', label: 'Users', icon: Users, roles: [Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER, Role.TECHNICIAN] },
+  { href: '/locations', label: 'Locations', icon: MapPin },
   { href: '/surveillance', label: 'Surveillance', icon: Camera },
 ];
 

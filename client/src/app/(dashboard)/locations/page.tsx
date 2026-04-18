@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Plus, MapPin } from 'lucide-react';
 import { useLocations } from '@/hooks/useLocations';
+import { useFranchises } from '@/hooks/useFranchises';
 import { LocationTable } from '@/components/locations/LocationTable';
 import { LocationModal } from '@/components/locations/LocationModal';
 import { SearchBar } from '@/components/ui/SearchBar';
@@ -16,17 +17,24 @@ export default function LocationsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('');
+  const [franchiseFilter, setFranchiseFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | undefined>();
+
+  const isAdmin = currentUser?.role === Role.ADMIN;
+  const isFranchiseManager = currentUser?.role === Role.FRANCHISE_MANAGER;
 
   const { data, isLoading } = useLocations({
     page,
     limit: 20,
     search: search || undefined,
     state: stateFilter || undefined,
+    franchiseId: franchiseFilter || undefined,
   });
 
-  const canCreate = currentUser?.role === Role.ADMIN;
+  const { data: franchisesData } = useFranchises({ limit: 100 });
+
+  const canCreate = isAdmin || isFranchiseManager;
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -43,7 +51,6 @@ export default function LocationsPage() {
     setEditingLocation(undefined);
   };
 
-  // Unique states from current results for filter dropdown
   const states = Array.from(new Set(data?.data.map((l) => l.state) ?? [])).sort();
 
   return (
@@ -53,7 +60,7 @@ export default function LocationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <MapPin className="h-6 w-6 text-primary-600" />
-            Location Administration
+            Locations
           </h1>
           {data && (
             <p className="text-sm text-gray-500 mt-1">
@@ -70,13 +77,25 @@ export default function LocationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <SearchBar
           value={search}
           onChange={handleSearch}
           placeholder="Search by name, number, city..."
-          className="flex-1"
+          className="flex-1 min-w-48"
         />
+        {isAdmin && franchisesData && franchisesData.data.length > 0 && (
+          <select
+            value={franchiseFilter}
+            onChange={(e) => { setFranchiseFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="">All franchises</option>
+            {franchisesData.data.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        )}
         <select
           value={stateFilter}
           onChange={(e) => { setStateFilter(e.target.value); setPage(1); }}
@@ -84,35 +103,21 @@ export default function LocationsPage() {
         >
           <option value="">All states</option>
           {states.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
       </div>
 
       {/* Table */}
-      <LocationTable
-        locations={data?.data ?? []}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-      />
+      <LocationTable locations={data?.data ?? []} isLoading={isLoading} onEdit={handleEdit} />
 
       {/* Pagination */}
       {data && data.totalPages > 1 && (
-        <Pagination
-          page={page}
-          totalPages={data.totalPages}
-          onPageChange={setPage}
-        />
+        <Pagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
       )}
 
       {/* Modal */}
-      <LocationModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        location={editingLocation}
-      />
+      <LocationModal isOpen={isModalOpen} onClose={handleCloseModal} location={editingLocation} />
     </div>
   );
 }

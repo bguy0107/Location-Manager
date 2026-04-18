@@ -11,12 +11,18 @@ import { buildPaginatedResponse } from '../../utils/pagination';
 
 export async function getSurveillanceRequests(query: SurveillanceQuery, actor: AuthenticatedUser) {
   const skip = (query.page - 1) * query.limit;
-  const userId = (actor.role === Role.USER || actor.role === Role.TECHNICIAN) ? actor.id : undefined;
+  const userId =
+    actor.role === Role.MANAGER || actor.role === Role.USER || actor.role === Role.TECHNICIAN
+      ? actor.id
+      : undefined;
+  const franchiseId =
+    actor.role === Role.FRANCHISE_MANAGER ? actor.franchiseId : query.franchiseId;
 
   const { data, total } = await repo.findMany({
     skip,
     take: query.limit,
     userId,
+    franchiseId,
     locationId: query.locationId,
     status: query.status as RequestStatus | undefined,
   });
@@ -28,9 +34,14 @@ export async function getSurveillanceRequestById(id: string, actor: Authenticate
   const request = await repo.findById(id);
   if (!request) throw new NotFoundError('Surveillance request');
 
-  if (actor.role === Role.USER || actor.role === Role.TECHNICIAN) {
+  if (actor.role === Role.MANAGER || actor.role === Role.USER || actor.role === Role.TECHNICIAN) {
     const inScope = await repo.isRequestInUserLocations(id, actor.id);
     if (!inScope) throw new NotFoundError('Surveillance request');
+  }
+
+  if (actor.role === Role.FRANCHISE_MANAGER) {
+    const inFranchise = await repo.isLocationInFranchise(request.location.id, actor.franchiseId!);
+    if (!inFranchise) throw new NotFoundError('Surveillance request');
   }
 
   return request;
@@ -40,9 +51,18 @@ export async function createSurveillanceRequest(
   dto: CreateSurveillanceRequestDto,
   actor: AuthenticatedUser
 ) {
-  if (actor.role === Role.USER || actor.role === Role.MANAGER || actor.role === Role.TECHNICIAN) {
+  if (
+    actor.role === Role.USER ||
+    actor.role === Role.MANAGER ||
+    actor.role === Role.TECHNICIAN
+  ) {
     const assigned = await repo.isUserAssignedToLocation(actor.id, dto.locationId);
     if (!assigned) throw new ForbiddenError();
+  }
+
+  if (actor.role === Role.FRANCHISE_MANAGER) {
+    const inFranchise = await repo.isLocationInFranchise(dto.locationId, actor.franchiseId!);
+    if (!inFranchise) throw new ForbiddenError();
   }
 
   return repo.create({
@@ -64,7 +84,12 @@ export async function updateSurveillanceStatus(
   const existing = await repo.findById(id);
   if (!existing) throw new NotFoundError('Surveillance request');
 
-  if (actor.role === Role.TECHNICIAN) {
+  if (actor.role === Role.FRANCHISE_MANAGER) {
+    const inFranchise = await repo.isLocationInFranchise(existing.location.id, actor.franchiseId!);
+    if (!inFranchise) throw new ForbiddenError();
+  }
+
+  if (actor.role === Role.MANAGER || actor.role === Role.TECHNICIAN) {
     const inScope = await repo.isRequestInUserLocations(id, actor.id);
     if (!inScope) throw new ForbiddenError();
   }
@@ -72,8 +97,19 @@ export async function updateSurveillanceStatus(
   return repo.updateStatus(id, dto.status as RequestStatus, actor.id, existing.status);
 }
 
-export async function deleteSurveillanceRequest(id: string, _actor: AuthenticatedUser) {
+export async function deleteSurveillanceRequest(id: string, actor: AuthenticatedUser) {
   const existing = await repo.findById(id);
   if (!existing) throw new NotFoundError('Surveillance request');
+
+  if (actor.role === Role.FRANCHISE_MANAGER) {
+    const inFranchise = await repo.isLocationInFranchise(existing.location.id, actor.franchiseId!);
+    if (!inFranchise) throw new ForbiddenError();
+  } else if (actor.role === Role.MANAGER || actor.role === Role.TECHNICIAN) {
+    const inScope = await repo.isRequestInUserLocations(id, actor.id);
+    if (!inScope) throw new ForbiddenError();
+  } else if (actor.role === Role.USER) {
+    if (existing.requestedBy.id !== actor.id) throw new ForbiddenError();
+  }
+
   return repo.remove(id);
 }

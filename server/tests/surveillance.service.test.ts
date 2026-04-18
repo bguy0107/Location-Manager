@@ -91,14 +91,18 @@ describe('surveillanceService.getSurveillanceRequests', () => {
     );
   });
 
-  it('returns all requests for MANAGER without userId filter', async () => {
-    (mockPrisma.surveillanceRequest.findMany as jest.Mock).mockResolvedValue([mockRequest]);
-    (mockPrisma.surveillanceRequest.count as jest.Mock).mockResolvedValue(1);
+  it('filters by userId for MANAGER role', async () => {
+    (mockPrisma.surveillanceRequest.findMany as jest.Mock).mockResolvedValue([]);
+    (mockPrisma.surveillanceRequest.count as jest.Mock).mockResolvedValue(0);
 
     await surveillanceService.getSurveillanceRequests({ page: 1, limit: 20 }, managerActor);
 
     expect(mockPrisma.surveillanceRequest.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} })
+      expect.objectContaining({
+        where: expect.objectContaining({
+          location: { users: { some: { userId: 'manager-id' } } },
+        }),
+      })
     );
   });
 
