@@ -11,6 +11,7 @@ import { usersRoutes } from './modules/users/users.routes';
 import { locationsRoutes } from './modules/locations/locations.routes';
 import { statsRoutes } from './modules/stats/stats.routes';
 import { surveillanceRoutes } from './modules/surveillance/surveillance.routes';
+import { franchisesRoutes } from './modules/franchises/franchises.routes';
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/locations', locationsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/surveillance', surveillanceRoutes);
+app.use('/api/franchises', franchisesRoutes);
 
 // 404 handler
 app.use((_req, res) => {

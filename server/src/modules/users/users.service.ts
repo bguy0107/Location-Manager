@@ -7,8 +7,12 @@ import { buildPaginatedResponse } from '../../utils/pagination';
 
 const SALT_ROUNDS = 12;
 
-export async function getUsers(query: UsersQuery) {
+export async function getUsers(query: UsersQuery, actor: AuthenticatedUser) {
   const skip = (query.page - 1) * query.limit;
+
+  // FRANCHISE_MANAGER only sees users in their franchise's locations
+  const franchiseId =
+    actor.role === Role.FRANCHISE_MANAGER ? actor.franchiseId : query.franchiseId;
 
   const { data, total } = await usersRepo.findMany({
     skip,
@@ -16,6 +20,7 @@ export async function getUsers(query: UsersQuery) {
     search: query.search,
     role: query.role,
     isActive: query.isActive,
+    franchiseId,
   });
 
   return buildPaginatedResponse(data, total, { page: query.page, limit: query.limit, skip });
@@ -33,10 +38,22 @@ export async function createUser(dto: CreateUserDto, actor: AuthenticatedUser) {
     throw new ForbiddenError('Managers cannot create admin or technician users');
   }
 
+  // FRANCHISE_MANAGER cannot create ADMIN or FRANCHISE_MANAGER users
+  if (
+    actor.role === Role.FRANCHISE_MANAGER &&
+    (dto.role === Role.ADMIN || dto.role === Role.FRANCHISE_MANAGER)
+  ) {
+    throw new ForbiddenError('Franchise managers cannot create admin or franchise manager users');
+  }
+
   const existing = await usersRepo.findByEmail(dto.email);
   if (existing) throw new ConflictError('Email already in use');
 
   const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
+
+  // For FRANCHISE_MANAGER creating users, franchiseId on the new user is not set
+  // (regular users belong to franchises indirectly through location assignments)
+  const franchiseId = dto.role === Role.FRANCHISE_MANAGER ? (dto.franchiseId ?? null) : null;
 
   return usersRepo.create({
     name: dto.name,
@@ -45,6 +62,7 @@ export async function createUser(dto: CreateUserDto, actor: AuthenticatedUser) {
     role: dto.role,
     isActive: dto.isActive,
     locationIds: dto.locationIds,
+    franchiseId,
   });
 }
 
@@ -62,7 +80,19 @@ export async function updateUser(id: string, dto: UpdateUserDto, actor: Authenti
     }
   }
 
-  // If email is changing, check it's not taken
+  // FRANCHISE_MANAGER cannot assign ADMIN or FRANCHISE_MANAGER role, or modify ADMIN users
+  if (actor.role === Role.FRANCHISE_MANAGER) {
+    if (dto.role === Role.ADMIN || dto.role === Role.FRANCHISE_MANAGER) {
+      throw new ForbiddenError('Franchise managers cannot assign admin or franchise manager role');
+    }
+    if (existing.role === Role.ADMIN) {
+      throw new ForbiddenError('Franchise managers cannot modify admin users');
+    }
+    // Must have at least one location in actor's franchise
+    const inFranchise = await usersRepo.hasLocationInFranchise(id, actor.franchiseId!);
+    if (!inFranchise) throw new ForbiddenError();
+  }
+
   if (dto.email && dto.email !== existing.email) {
     const taken = await usersRepo.findByEmail(dto.email);
     if (taken) throw new ConflictError('Email already in use');
@@ -73,6 +103,9 @@ export async function updateUser(id: string, dto: UpdateUserDto, actor: Authenti
     hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
   }
 
+  const franchiseId =
+    dto.role === Role.FRANCHISE_MANAGER ? (dto.franchiseId ?? existing.franchiseId) : null;
+
   return usersRepo.update(id, {
     name: dto.name,
     email: dto.email,
@@ -80,6 +113,7 @@ export async function updateUser(id: string, dto: UpdateUserDto, actor: Authenti
     role: dto.role,
     isActive: dto.isActive,
     locationIds: dto.locationIds,
+    franchiseId,
   });
 }
 
@@ -90,6 +124,13 @@ export async function deleteUser(id: string, actor: AuthenticatedUser) {
 
   const existing = await usersRepo.findById(id);
   if (!existing) throw new NotFoundError('User');
+
+  // FRANCHISE_MANAGER can only delete users within their franchise
+  if (actor.role === Role.FRANCHISE_MANAGER) {
+    if (existing.role === Role.ADMIN) throw new ForbiddenError();
+    const inFranchise = await usersRepo.hasLocationInFranchise(id, actor.franchiseId!);
+    if (!inFranchise) throw new ForbiddenError();
+  }
 
   return usersRepo.remove(id);
 }

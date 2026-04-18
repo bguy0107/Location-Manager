@@ -6,8 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Location } from '@/types';
+import { Location, Role } from '@/types';
 import { useUsers } from '@/hooks/useUsers';
+import { useFranchises } from '@/hooks/useFranchises';
+import { useAuth } from '@/providers/AuthProvider';
 
 const locationSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -18,6 +20,7 @@ const locationSchema = z.object({
   zip: z.string().min(5, 'Zip code must be at least 5 characters'),
   notes: z.string().max(1000).optional(),
   userIds: z.array(z.string()),
+  franchiseId: z.string().optional().nullable(),
 });
 
 type LocationFormData = z.infer<typeof locationSchema>;
@@ -30,8 +33,11 @@ interface LocationFormProps {
 }
 
 export function LocationForm({ location, onSubmit, isLoading, assignmentsOnly }: LocationFormProps) {
+  const { user: currentUser } = useAuth();
   const { data: usersData } = useUsers({ limit: 100, isActive: true });
+  const { data: franchisesData } = useFranchises({ limit: 100 });
   const isEditing = !!location;
+  const isAdmin = currentUser?.role === Role.ADMIN;
 
   const {
     register,
@@ -50,6 +56,7 @@ export function LocationForm({ location, onSubmit, isLoading, assignmentsOnly }:
       zip: location?.zip ?? '',
       notes: location?.notes ?? '',
       userIds: location?.users.map((ul) => ul.user.id) ?? [],
+      franchiseId: location?.franchiseId ?? null,
     },
   });
 
@@ -64,6 +71,7 @@ export function LocationForm({ location, onSubmit, isLoading, assignmentsOnly }:
         zip: location.zip,
         notes: location.notes ?? '',
         userIds: location.users.map((ul) => ul.user.id),
+        franchiseId: location.franchiseId ?? null,
       });
     }
   }, [location, reset]);
@@ -133,6 +141,22 @@ export function LocationForm({ location, onSubmit, isLoading, assignmentsOnly }:
           {...register('zip')}
         />
       </div>
+
+      {/* Franchise assignment — only ADMIN can change franchise */}
+      {isAdmin && franchisesData && !assignmentsOnly && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Franchise</label>
+          <select
+            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            {...register('franchiseId')}
+          >
+            <option value="">No franchise</option>
+            {franchisesData.data.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-700">Notes (optional)</label>

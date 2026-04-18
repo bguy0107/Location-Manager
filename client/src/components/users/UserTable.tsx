@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Trash2, UserCheck, UserX } from 'lucide-react';
 import { Table } from '@/components/ui/Table';
-import { Badge } from '@/components/ui/Badge';
+import { Badge, BadgeVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { User, Role } from '@/types';
 import { useDeleteUser } from '@/hooks/useUsers';
@@ -16,11 +16,12 @@ interface UserTableProps {
   onEdit: (user: User) => void;
 }
 
-const roleVariant: Record<Role, 'info' | 'warning' | 'default'> = {
-  ADMIN: 'info',
-  MANAGER: 'warning',
+const roleVariant: Record<Role, BadgeVariant> = {
+  ADMIN: 'danger',
+  FRANCHISE_MANAGER: 'success',
+  MANAGER: 'info',
   USER: 'default',
-  TECHNICIAN: 'default',
+  TECHNICIAN: 'warning',
 };
 
 export function UserTable({ users, isLoading, onEdit }: UserTableProps) {
@@ -103,22 +104,11 @@ export function UserTable({ users, isLoading, onEdit }: UserTableProps) {
       header: '',
       render: (user: User) => (
         <div className="flex items-center gap-2 justify-end">
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(user)}
-              className="text-gray-500 hover:text-primary-600"
-              aria-label={`Edit ${user.name}`}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
           {canDelete && (
             <Button
               variant={confirmDeleteId === user.id ? 'danger' : 'ghost'}
               size="sm"
-              onClick={() => handleDelete(user.id)}
+              onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }}
               isLoading={deleteUser.isPending && confirmDeleteId === user.id}
               aria-label={confirmDeleteId === user.id ? 'Confirm delete' : `Delete ${user.name}`}
             >
@@ -140,6 +130,7 @@ export function UserTable({ users, isLoading, onEdit }: UserTableProps) {
       isLoading={isLoading}
       keyExtractor={(u) => u.id}
       emptyMessage="No users found. Try adjusting your search."
+      onRowClick={canEdit ? onEdit : undefined}
     />
   );
 }

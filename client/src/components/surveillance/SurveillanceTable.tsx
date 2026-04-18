@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Trash2, Eye } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Table } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -42,7 +42,12 @@ export function SurveillanceTable({ requests, isLoading, onView }: SurveillanceT
   const deleteRequest = useDeleteSurveillanceRequest();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canDelete = currentUser?.role === Role.ADMIN;
+  const canDeleteRequest = (r: SurveillanceRequest) => {
+    if (!currentUser) return false;
+    if (currentUser.role === Role.USER) return r.requestedBy.id === currentUser.id;
+    // ADMIN, FRANCHISE_MANAGER, MANAGER, TECHNICIAN can delete (backend scopes by assignment/franchise)
+    return true;
+  };
 
   const handleDelete = async (id: string) => {
     if (confirmDeleteId === id) {
@@ -117,20 +122,11 @@ export function SurveillanceTable({ requests, isLoading, onView }: SurveillanceT
       header: '',
       render: (r: SurveillanceRequest) => (
         <div className="flex items-center gap-2 justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onView(r)}
-            className="text-gray-500 hover:text-primary-600"
-            aria-label="View request"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          {canDelete && (
+          {canDeleteRequest(r) && (
             <Button
               variant={confirmDeleteId === r.id ? 'danger' : 'ghost'}
               size="sm"
-              onClick={() => handleDelete(r.id)}
+              onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
               isLoading={deleteRequest.isPending && confirmDeleteId === r.id}
               aria-label={confirmDeleteId === r.id ? 'Confirm delete' : 'Delete request'}
             >
@@ -150,6 +146,7 @@ export function SurveillanceTable({ requests, isLoading, onView }: SurveillanceT
       isLoading={isLoading}
       keyExtractor={(r) => r.id}
       emptyMessage="No surveillance requests found."
+      onRowClick={onView}
     />
   );
 }

@@ -8,6 +8,7 @@ export interface SurveillanceParams {
   page?: number;
   limit?: number;
   locationId?: string;
+  franchiseId?: string;
   status?: string;
 }
 

@@ -2,15 +2,17 @@ import { Request } from 'express';
 
 export enum Role {
   ADMIN = 'ADMIN',
+  FRANCHISE_MANAGER = 'FRANCHISE_MANAGER',
   MANAGER = 'MANAGER',
   USER = 'USER',
   TECHNICIAN = 'TECHNICIAN',
 }
 
 export interface JwtPayload {
-  sub: string;   // user id
+  sub: string;
   email: string;
   role: Role;
+  franchiseId?: string;
   iat?: number;
   exp?: number;
 }
@@ -19,6 +21,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   role: Role;
+  franchiseId?: string;
 }
 
 // Augment Express Request to include the authenticated user

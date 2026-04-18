@@ -14,12 +14,12 @@ surveillanceRoutes.get('/:id', controller.getRequest);
 
 surveillanceRoutes.post('/', controller.createRequest);
 
-// ADMIN, MANAGER, and TECHNICIAN can update status
+// ADMIN, FRANCHISE_MANAGER, MANAGER, and TECHNICIAN can update status
 surveillanceRoutes.patch(
   '/:id',
-  requireRole(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN),
+  requireRole(Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER, Role.TECHNICIAN),
   controller.updateStatus
 );
 
-// Only ADMIN can delete
-surveillanceRoutes.delete('/:id', requireRole(Role.ADMIN), controller.deleteRequest);
+// All authenticated users can delete (service enforces per-role scope)
+surveillanceRoutes.delete('/:id', controller.deleteRequest);

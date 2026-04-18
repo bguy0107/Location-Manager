@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { User, Role } from '@/types';
 import { useLocations } from '@/hooks/useLocations';
+import { useFranchises } from '@/hooks/useFranchises';
 import { useAuth } from '@/providers/AuthProvider';
 
 const createSchema = z.object({
@@ -21,6 +22,7 @@ const createSchema = z.object({
   role: z.nativeEnum(Role),
   isActive: z.boolean(),
   locationIds: z.array(z.string()),
+  franchiseId: z.string().optional().nullable(),
 });
 
 const editSchema = createSchema
@@ -48,7 +50,12 @@ interface UserFormProps {
 export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
   const { user: currentUser } = useAuth();
   const { data: locationsData } = useLocations({ limit: 100 });
+  const { data: franchisesData } = useFranchises({ limit: 100 });
   const isEditing = !!user;
+
+  const isAdminActor = currentUser?.role === Role.ADMIN;
+  const isManagerActor = currentUser?.role === Role.MANAGER;
+  const isFranchiseManagerActor = currentUser?.role === Role.FRANCHISE_MANAGER;
 
   const {
     register,
@@ -66,6 +73,7 @@ export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
       role: user?.role ?? Role.USER,
       isActive: user?.isActive ?? true,
       locationIds: user?.locations.map((ul) => ul.location.id) ?? [],
+      franchiseId: user?.franchiseId ?? null,
     },
   });
 
@@ -78,11 +86,12 @@ export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
         role: user.role,
         isActive: user.isActive,
         locationIds: user.locations.map((ul) => ul.location.id),
+        franchiseId: user.franchiseId ?? null,
       });
     }
   }, [user, reset]);
 
-  const watchedLocationIds = watch('locationIds');
+  const watchedRole = watch('role');
 
   const toggleLocation = (locationId: string, current: string[], onChange: (v: string[]) => void) => {
     if (current.includes(locationId)) {
@@ -92,11 +101,13 @@ export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
     }
   };
 
-  // MANAGER cannot assign ADMIN role
-  const isManagerActor = currentUser?.role === Role.MANAGER;
-  const availableRoles = isManagerActor
-    ? [Role.MANAGER, Role.USER]
-    : [Role.ADMIN, Role.MANAGER, Role.USER, Role.TECHNICIAN];
+  const availableRoles = isAdminActor
+    ? [Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER, Role.USER, Role.TECHNICIAN]
+    : isManagerActor
+      ? [Role.MANAGER, Role.USER]
+      : isFranchiseManagerActor
+        ? [Role.MANAGER, Role.USER, Role.TECHNICIAN]
+        : [Role.USER];
 
   return (
     <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
@@ -137,7 +148,7 @@ export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
           >
             {availableRoles.map((r) => (
               <option key={r} value={r}>
-                {r}
+                {r === Role.FRANCHISE_MANAGER ? 'Franchise Manager' : r.charAt(0) + r.slice(1).toLowerCase()}
               </option>
             ))}
           </select>
@@ -154,6 +165,22 @@ export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
           </select>
         </div>
       </div>
+
+      {/* Franchise assignment — only for ADMIN creating a FRANCHISE_MANAGER */}
+      {isAdminActor && watchedRole === Role.FRANCHISE_MANAGER && franchisesData && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Franchise</label>
+          <select
+            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            {...register('franchiseId')}
+          >
+            <option value="">No franchise assigned</option>
+            {franchisesData.data.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Location assignment */}
       {locationsData && locationsData.data.length > 0 && (
@@ -172,19 +199,18 @@ export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
                     <input
                       type="checkbox"
                       checked={field.value.includes(loc.id)}
-                      onChange={() =>
-                        toggleLocation(loc.id, field.value, field.onChange)
-                      }
+                      onChange={() => toggleLocation(loc.id, field.value, field.onChange)}
                       className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
                     <span className="font-medium">{loc.name}</span>
                     <span className="text-gray-400">#{loc.storeNumber}</span>
+                    {loc.franchise && (
+                      <span className="text-gray-300 text-xs ml-auto">{loc.franchise.name}</span>
+                    )}
                   </label>
                 ))}
               </div>
-              <p className="text-xs text-gray-500">
-                {field.value.length} location(s) selected
-              </p>
+              <p className="text-xs text-gray-500">{field.value.length} location(s) selected</p>
             </div>
           )}
         />

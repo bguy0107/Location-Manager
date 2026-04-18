@@ -7,6 +7,7 @@ export function signAccessToken(payload: {
   sub: string;
   email: string;
   role: Role;
+  franchiseId?: string;
 }): string {
   return jwt.sign(payload, config.JWT_ACCESS_SECRET, {
     expiresIn: config.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'],

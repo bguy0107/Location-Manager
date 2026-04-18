@@ -102,13 +102,13 @@ describe('locationsService.getLocationById', () => {
 describe('locationsService.deleteLocation', () => {
   it('throws NotFoundError when location does not exist', async () => {
     (mockPrisma.location.findUnique as jest.Mock).mockResolvedValue(null);
-    await expect(locationsService.deleteLocation('nonexistent')).rejects.toThrow(NotFoundError);
+    await expect(locationsService.deleteLocation('nonexistent', adminActor)).rejects.toThrow(NotFoundError);
   });
 
   it('deletes location successfully', async () => {
     (mockPrisma.location.findUnique as jest.Mock).mockResolvedValue(mockLocation);
     (mockPrisma.location.delete as jest.Mock).mockResolvedValue({ id: 'loc-1' });
 
-    await expect(locationsService.deleteLocation('loc-1')).resolves.not.toThrow();
+    await expect(locationsService.deleteLocation('loc-1', adminActor)).resolves.not.toThrow();
   });
 });

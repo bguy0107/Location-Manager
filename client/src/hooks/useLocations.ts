@@ -10,6 +10,7 @@ export interface LocationsParams {
   search?: string;
   state?: string;
   city?: string;
+  franchiseId?: string;
 }
 
 async function fetchLocations(params: LocationsParams): Promise<PaginatedResponse<Location>> {

@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { Plus, Camera } from 'lucide-react';
 import { useSurveillanceRequests } from '@/hooks/useSurveillance';
+import { useFranchises } from '@/hooks/useFranchises';
+import { useLocations } from '@/hooks/useLocations';
 import { SurveillanceTable } from '@/components/surveillance/SurveillanceTable';
 import { SurveillanceModal } from '@/components/surveillance/SurveillanceModal';
 import { Pagination } from '@/components/ui/Pagination';
 import { Button } from '@/components/ui/Button';
-import { SurveillanceRequest, RequestStatus } from '@/types';
+import { useAuth } from '@/providers/AuthProvider';
+import { SurveillanceRequest, RequestStatus, Role } from '@/types';
 
 const STATUS_OPTIONS: { label: string; value: string }[] = [
   { label: 'All Statuses', value: '' },
@@ -18,15 +21,29 @@ const STATUS_OPTIONS: { label: string; value: string }[] = [
 ];
 
 export default function SurveillancePage() {
+  const { user: currentUser } = useAuth();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [franchiseFilter, setFranchiseFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewingRequest, setViewingRequest] = useState<SurveillanceRequest | undefined>();
+
+  const isAdmin = currentUser?.role === Role.ADMIN;
+  const isFranchiseManager = currentUser?.role === Role.FRANCHISE_MANAGER;
 
   const { data, isLoading } = useSurveillanceRequests({
     page,
     limit: 20,
     status: statusFilter || undefined,
+    franchiseId: franchiseFilter || undefined,
+    locationId: locationFilter || undefined,
+  });
+
+  const { data: franchisesData } = useFranchises({ limit: 100 });
+  const { data: locationsData } = useLocations({
+    limit: 100,
+    franchiseId: franchiseFilter || undefined,
   });
 
   const handleStatusChange = (value: string) => {
@@ -36,10 +53,6 @@ export default function SurveillancePage() {
 
   const handleView = (request: SurveillanceRequest) => {
     setViewingRequest(request);
-  };
-
-  const handleCloseViewModal = () => {
-    setViewingRequest(undefined);
   };
 
   return (
@@ -64,16 +77,38 @@ export default function SurveillancePage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
+        {isAdmin && franchisesData && franchisesData.data.length > 0 && (
+          <select
+            value={franchiseFilter}
+            onChange={(e) => { setFranchiseFilter(e.target.value); setLocationFilter(''); setPage(1); }}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="">All franchises</option>
+            {franchisesData.data.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        )}
+        {(isAdmin || isFranchiseManager) && locationsData && locationsData.data.length > 0 && (
+          <select
+            value={locationFilter}
+            onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="">All locations</option>
+            {locationsData.data.map((l) => (
+              <option key={l.id} value={l.id}>{l.name} #{l.storeNumber}</option>
+            ))}
+          </select>
+        )}
         <select
           value={statusFilter}
           onChange={(e) => handleStatusChange(e.target.value)}
           className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
         >
           {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
       </div>
@@ -90,16 +125,13 @@ export default function SurveillancePage() {
         <Pagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
       )}
 
-      {/* Create modal */}
       <SurveillanceModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
       />
-
-      {/* View/update modal */}
       <SurveillanceModal
         isOpen={!!viewingRequest}
-        onClose={handleCloseViewModal}
+        onClose={() => setViewingRequest(undefined)}
         request={viewingRequest}
       />
     </div>

@@ -6,4 +6,4 @@ import { getDashboardStats } from './stats.controller';
 
 export const statsRoutes = Router();
 
-statsRoutes.get('/', authenticate, requireRole(Role.ADMIN, Role.MANAGER), getDashboardStats);
+statsRoutes.get('/', authenticate, requireRole(Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER), getDashboardStats);

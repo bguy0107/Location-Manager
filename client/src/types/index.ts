@@ -1,8 +1,32 @@
 export enum Role {
   ADMIN = 'ADMIN',
+  FRANCHISE_MANAGER = 'FRANCHISE_MANAGER',
   MANAGER = 'MANAGER',
   USER = 'USER',
   TECHNICIAN = 'TECHNICIAN',
+}
+
+export enum FranchiseStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+
+export interface Franchise {
+  id: string;
+  name: string;
+  status: FranchiseStatus;
+  logoUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  owner: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  _count: {
+    locations: number;
+    managers: number;
+  };
 }
 
 export interface User {
@@ -11,6 +35,7 @@ export interface User {
   email: string;
   role: Role;
   isActive: boolean;
+  franchiseId: string | null;
   createdAt: string;
   updatedAt: string;
   locations: Array<{
@@ -31,6 +56,8 @@ export interface Location {
   state: string;
   zip: string;
   notes: string | null;
+  franchiseId: string | null;
+  franchise: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
   users: Array<{
@@ -148,6 +175,7 @@ export interface UserFormData {
   role: Role;
   isActive: boolean;
   locationIds: string[];
+  franchiseId?: string | null;
 }
 
 export interface LocationFormData {
@@ -159,4 +187,12 @@ export interface LocationFormData {
   zip: string;
   notes?: string;
   userIds: string[];
+  franchiseId?: string | null;
+}
+
+export interface FranchiseFormData {
+  name: string;
+  status: FranchiseStatus;
+  logoUrl?: string;
+  ownerId: string;
 }

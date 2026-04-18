@@ -29,10 +29,16 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  const fillCredentials = (email: string, password: string) => {
+    setValue('email', email);
+    setValue('password', password);
+  };
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -113,17 +119,32 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Demo Credentials
-            </p>
-            <div className="space-y-1 text-xs text-gray-600">
-              <p><span className="font-medium">Admin:</span> admin@example.com / Admin123!</p>
-              <p><span className="font-medium">Manager:</span> manager1@example.com / Manager123!</p>
-              <p><span className="font-medium">User:</span> user1@example.com / User123!</p>
+          {/* Dev-only credentials */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Dev Credentials — click to fill
+              </p>
+              <div className="space-y-1">
+                {[
+                  { label: 'Admin',             email: 'admin@example.com',       password: 'Admin123!'        },
+                  { label: 'Franchise Manager', email: 'frank.east@example.com',  password: 'Franchise123!'    },
+                  { label: 'Manager',           email: 'manager1@example.com',    password: 'Manager123!'      },
+                  { label: 'Technician',        email: 'tech1@example.com',       password: 'Technician123!'   },
+                  { label: 'User',              email: 'user1@example.com',       password: 'User123!'         },
+                ].map(({ label, email, password }) => (
+                  <button
+                    key={email}
+                    type="button"
+                    onClick={() => fillCredentials(email, password)}
+                    className="w-full text-left text-xs text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                  >
+                    <span className="font-medium">{label}:</span> {email}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ export const createUserSchema = z.object({
   role: z.nativeEnum(Role).default(Role.USER),
   isActive: z.boolean().default(true),
   locationIds: z.array(z.string().uuid()).optional().default([]),
+  franchiseId: z.string().uuid().optional().nullable(),
 });
 
 export const updateUserSchema = z.object({
@@ -26,6 +27,7 @@ export const updateUserSchema = z.object({
   role: z.nativeEnum(Role).optional(),
   isActive: z.boolean().optional(),
   locationIds: z.array(z.string().uuid()).optional(),
+  franchiseId: z.string().uuid().optional().nullable(),
 });
 
 export const usersQuerySchema = z.object({
@@ -37,6 +39,7 @@ export const usersQuerySchema = z.object({
     .string()
     .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined))
     .optional(),
+  franchiseId: z.string().uuid().optional(),
 });
 
 export type CreateUserDto = z.infer<typeof createUserSchema>;

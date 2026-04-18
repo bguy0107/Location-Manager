@@ -10,8 +10,12 @@ const locationSelect = {
   state: true,
   zip: true,
   notes: true,
+  franchiseId: true,
   createdAt: true,
   updatedAt: true,
+  franchise: {
+    select: { id: true, name: true },
+  },
   users: {
     select: {
       user: {
@@ -29,7 +33,8 @@ export async function findMany(params: {
   search?: string;
   state?: string;
   city?: string;
-  userId?: string; // Filter to locations assigned to a specific user
+  userId?: string;
+  franchiseId?: string;
 }) {
   const where: Prisma.LocationWhereInput = {};
 
@@ -45,6 +50,9 @@ export async function findMany(params: {
   if (params.city) where.city = { contains: params.city, mode: 'insensitive' };
   if (params.userId) {
     where.users = { some: { userId: params.userId } };
+  }
+  if (params.franchiseId) {
+    where.franchiseId = params.franchiseId;
   }
 
   const [data, total] = await Promise.all([
@@ -74,6 +82,7 @@ export async function create(data: {
   zip: string;
   notes?: string;
   userIds: string[];
+  franchiseId?: string | null;
 }) {
   const { userIds, ...locationData } = data;
   return prisma.location.create({
@@ -98,6 +107,7 @@ export async function update(
     zip?: string;
     notes?: string | null;
     userIds?: string[];
+    franchiseId?: string | null;
   }
 ) {
   const { userIds, ...locationData } = data;

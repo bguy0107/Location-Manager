@@ -15,7 +15,11 @@ interface LocationModalProps {
 export function LocationModal({ isOpen, onClose, location }: LocationModalProps) {
   const { user: currentUser } = useAuth();
   const isEditing = !!location;
-  const assignmentsOnly = isEditing && currentUser?.role === Role.MANAGER;
+  const assignmentsOnly =
+    isEditing &&
+    currentUser?.role !== Role.ADMIN &&
+    currentUser?.role !== Role.FRANCHISE_MANAGER &&
+    currentUser?.role === Role.MANAGER;
 
   const createLocation = useCreateLocation();
   const updateLocation = useUpdateLocation(location?.id ?? '');

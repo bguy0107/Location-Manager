@@ -30,6 +30,7 @@ export async function login(dto: LoginDto) {
     sub: user.id,
     email: user.email,
     role: user.role as Role,
+    franchiseId: user.franchiseId ?? undefined,
   });
 
   const refreshTokenValue = signRefreshToken({ sub: user.id });
@@ -65,6 +66,7 @@ export async function refresh(refreshTokenValue: string) {
     sub: stored.user.id,
     email: stored.user.email,
     role: stored.user.role as Role,
+    franchiseId: stored.user.franchiseId ?? undefined,
   });
 
   const newRefreshToken = signRefreshToken({ sub: stored.user.id });

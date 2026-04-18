@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../utils/prisma';
 
-// Fields to always select (never return password)
 const userSelect = {
   id: true,
   name: true,
   email: true,
   role: true,
   isActive: true,
+  franchiseId: true,
   createdAt: true,
   updatedAt: true,
   locations: {
@@ -27,6 +27,7 @@ export async function findMany(params: {
   search?: string;
   role?: string;
   isActive?: boolean;
+  franchiseId?: string;
 }) {
   const where: Prisma.UserWhereInput = {};
 
@@ -38,6 +39,11 @@ export async function findMany(params: {
   }
   if (params.role) where.role = params.role as any;
   if (params.isActive !== undefined) where.isActive = params.isActive;
+  if (params.franchiseId) {
+    where.locations = {
+      some: { location: { franchiseId: params.franchiseId } },
+    };
+  }
 
   const [data, total] = await Promise.all([
     prisma.user.findMany({
@@ -68,6 +74,7 @@ export async function create(data: {
   role: string;
   isActive: boolean;
   locationIds: string[];
+  franchiseId?: string | null;
 }) {
   const { locationIds, ...userData } = data;
   return prisma.user.create({
@@ -91,12 +98,12 @@ export async function update(
     role?: string;
     isActive?: boolean;
     locationIds?: string[];
+    franchiseId?: string | null;
   }
 ) {
   const { locationIds, ...userData } = data;
 
   return prisma.$transaction(async (tx) => {
-    // Replace location assignments if provided
     if (locationIds !== undefined) {
       await tx.userLocation.deleteMany({ where: { userId: id } });
       if (locationIds.length > 0) {
@@ -124,4 +131,12 @@ export async function countAll() {
 
 export async function countActive() {
   return prisma.user.count({ where: { isActive: true } });
+}
+
+export async function hasLocationInFranchise(userId: string, franchiseId: string) {
+  const row = await prisma.userLocation.findFirst({
+    where: { userId, location: { franchiseId } },
+    select: { userId: true },
+  });
+  return row !== null;
 }

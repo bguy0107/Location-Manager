@@ -58,7 +58,7 @@ export async function updateAssignments(req: Request, res: Response, next: NextF
 
 export async function deleteLocation(req: Request, res: Response, next: NextFunction) {
   try {
-    await locationsService.deleteLocation(req.params.id);
+    await locationsService.deleteLocation(req.params.id, req.user);
     res.json({ success: true, message: 'Location deleted successfully' });
   } catch (err) {
     next(err);

@@ -1,6 +1,6 @@
 # Location Manager
 
-A production-ready, mobile-first web application for managing physical store locations and team members with role-based access control.
+A production-ready, mobile-first web application for managing physical store locations, franchises, team members, and surveillance footage requests — with role-based access control.
 
 ## Tech Stack
 
@@ -23,7 +23,7 @@ A production-ready, mobile-first web application for managing physical store loc
 
 ### Prerequisites
 
-- Node.js 22 LTS
+- Node.js 20+
 - PostgreSQL 14+
 - npm 10+
 
@@ -49,7 +49,7 @@ JWT_ACCESS_SECRET=<at least 32 random characters>
 JWT_REFRESH_SECRET=<at least 32 random characters — different from access secret>
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=15d
-PORT=5001
+PORT=5000
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:3000
 ```
@@ -63,7 +63,7 @@ cp client/.env.local.example client/.env.local
 `client/.env.local` should contain:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5001/api
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
 ### 4. Create the database
@@ -87,7 +87,7 @@ cd ..
 npm run dev
 ```
 
-- **Backend:** http://localhost:5001
+- **Backend:** http://localhost:5000
 - **Frontend:** http://localhost:3000
 
 ### Seed accounts
@@ -95,9 +95,16 @@ npm run dev
 | Role | Email | Password |
 |---|---|---|
 | ADMIN | admin@example.com | Admin123! |
+| FRANCHISE_MANAGER | frank.east@example.com | Franchise123! |
+| FRANCHISE_MANAGER | wendy.west@example.com | Franchise123! |
 | MANAGER | manager1@example.com | Manager123! |
 | MANAGER | manager2@example.com | Manager123! |
 | USER | user1@example.com | User123! |
+| USER | user2–5@example.com | User123! |
+| TECHNICIAN | tech1@example.com | Technician123! |
+| TECHNICIAN | tech2–3@example.com | Technician123! |
+
+Seed franchises: **East Coast Franchise** (NY, FL) and **West Coast Franchise** (CA, IL). TX location is unaffiliated.
 
 ---
 
@@ -112,13 +119,13 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl git nginx ufw
 ```
 
-### 2. Install Node.js 22 LTS
+### 2. Install Node.js 20 LTS
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
-node -v   # should print v22.x.x
-npm -v    # should print 10.x.x
+node -v
+npm -v
 ```
 
 ### 3. Install PostgreSQL
@@ -221,7 +228,7 @@ JWT_ACCESS_SECRET=<generate with: openssl rand -base64 48>
 JWT_REFRESH_SECRET=<generate with: openssl rand -base64 48>
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=15d
-PORT=5001
+PORT=5000
 NODE_ENV=production
 CORS_ORIGIN=http://<SERVER_IP>
 ```
@@ -368,7 +375,7 @@ server {
 
     # Proxy API requests to the Express backend
     location /api {
-        proxy_pass         http://127.0.0.1:5001;
+        proxy_pass         http://127.0.0.1:5000;
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -406,7 +413,7 @@ Allow SSH, HTTP, and block direct access to the app ports:
 ```bash
 sudo ufw allow OpenSSH
 sudo ufw allow 'Nginx HTTP'
-sudo ufw deny 5001/tcp
+sudo ufw deny 5000/tcp
 sudo ufw deny 3000/tcp
 sudo ufw enable
 ```
@@ -425,25 +432,17 @@ To                         Action      From
 --                         ------      ----
 OpenSSH                    ALLOW       Anywhere
 Nginx HTTP                 ALLOW       Anywhere
-5001/tcp                   DENY        Anywhere
+5000/tcp                   DENY        Anywhere
 3000/tcp                   DENY        Anywhere
 ```
 
 ### 14. (Optional) Seed the database
 
-Only run this on a fresh installation to create the initial admin account and sample data:
+Only run this on a fresh installation to create the initial accounts and sample data:
 
 ```bash
 cd /opt/location-manager/server
-sudo -u locmgr npx ts-node prisma/seed.ts
-```
-
-Or if the server is already built:
-
-```bash
-sudo -u locmgr node -e "require('./dist/server.js')" 2>/dev/null; \
-    cd /opt/location-manager/server && \
-    sudo -u locmgr npm run db:seed
+sudo -u locmgr npm run db:seed
 ```
 
 ### 15. Verify the deployment
@@ -518,6 +517,7 @@ sudo systemctl restart location-manager-server location-manager-client
 | `npm run dev` | Start both client and server in development mode |
 | `npm run build` | Build both client and server for production |
 | `npm run test` | Run server unit tests |
+| `npm run lint` | Lint both client and server |
 
 ### Server (`cd server`)
 
@@ -546,23 +546,38 @@ sudo systemctl restart location-manager-server location-manager-client
 
 ```
 location-manager/
-├── client/           # Next.js 14 App Router frontend
+├── client/                    # Next.js 14 App Router frontend
 │   └── src/
-│       ├── app/      # Pages and layouts
+│       ├── app/
+│       │   ├── login/         # Login page
+│       │   └── (dashboard)/   # Auth-guarded dashboard layout
+│       │       ├── dashboard/
+│       │       ├── users/
+│       │       ├── locations/
+│       │       ├── franchises/
+│       │       └── surveillance/
 │       ├── components/
-│       ├── hooks/    # TanStack Query hooks
-│       ├── lib/      # Axios instance, utilities
-│       ├── providers/# Auth + QueryClient providers
-│       └── types/    # TypeScript types
+│       │   ├── ui/            # Button, Input, Modal, Table, Badge, Spinner, Pagination, SearchBar
+│       │   ├── users/         # UserTable, UserForm, UserModal
+│       │   ├── locations/     # LocationTable, LocationForm, LocationModal
+│       │   ├── franchises/    # FranchiseTable, FranchiseForm, FranchiseModal
+│       │   └── surveillance/  # SurveillanceTable, SurveillanceForm, SurveillanceModal
+│       ├── hooks/             # TanStack Query hooks: useUsers, useLocations, useFranchises, useSurveillance
+│       ├── lib/               # Axios instance (api.ts), utilities (utils.ts)
+│       ├── providers/         # AuthProvider, QueryProvider
+│       └── types/             # Shared TypeScript types
 │
-└── server/           # Express + TypeScript backend
-    ├── prisma/       # Schema + migrations + seed
+└── server/                    # Express + TypeScript backend
+    ├── prisma/                # Schema, migrations, seed
     ├── src/
-    │   ├── config/   # Validated env config (Zod)
-    │   ├── middleware/# Auth, RBAC, error handler, rate limiter
-    │   ├── modules/  # Feature modules (auth, users, locations, surveillance)
-    │   └── utils/    # Logger, JWT, errors, pagination
-    └── tests/        # Jest unit tests
+    │   ├── app.ts             # Express app, middleware, route mounting
+    │   ├── server.ts          # HTTP server entry point
+    │   ├── config/            # Zod-validated env config
+    │   ├── middleware/        # auth, rbac, errorHandler, requestLogger, rateLimit
+    │   ├── modules/           # auth, users, locations, franchises, surveillance, stats
+    │   ├── types/             # Role enum, JwtPayload, AuthenticatedUser, PaginatedResponse
+    │   └── utils/             # logger, jwt, errors, pagination, prisma
+    └── tests/                 # Jest unit tests (users, locations, surveillance)
 ```
 
 ---
@@ -578,55 +593,88 @@ POST /api/auth/logout    — Log out (clears cookie)
 
 ### Users
 ```
-GET    /api/users        — List users (ADMIN, MANAGER)
-POST   /api/users        — Create user (ADMIN, MANAGER)
+GET    /api/users        — List users (ADMIN, FRANCHISE_MANAGER, MANAGER, TECHNICIAN)
+POST   /api/users        — Create user (ADMIN, FRANCHISE_MANAGER, MANAGER)
 GET    /api/users/me     — Get own profile (any authenticated user)
-GET    /api/users/:id    — Get user by ID (ADMIN, MANAGER)
-PUT    /api/users/:id    — Update user (ADMIN, MANAGER)
-DELETE /api/users/:id    — Delete user (ADMIN only)
+GET    /api/users/:id    — Get user by ID (ADMIN, FRANCHISE_MANAGER, MANAGER, TECHNICIAN)
+PUT    /api/users/:id    — Update user (ADMIN, FRANCHISE_MANAGER, MANAGER)
+DELETE /api/users/:id    — Delete user (ADMIN, FRANCHISE_MANAGER)
 ```
 
 ### Locations
 ```
-GET    /api/locations          — List locations (USER sees own only; ADMIN/MANAGER see all)
-GET    /api/locations/:id      — Get location by ID
-POST   /api/locations          — Create location (ADMIN only)
-PUT    /api/locations/:id      — Update location details (ADMIN only)
-PATCH  /api/locations/:id/assignments — Update user assignments (ADMIN; MANAGER for assigned locations)
-DELETE /api/locations/:id      — Delete location (ADMIN only)
+GET    /api/locations                  — List locations (USER sees assigned only; others see all)
+GET    /api/locations/:id              — Get location by ID
+POST   /api/locations                  — Create location (ADMIN, FRANCHISE_MANAGER)
+PUT    /api/locations/:id              — Update location details (ADMIN, FRANCHISE_MANAGER)
+PATCH  /api/locations/:id/assignments  — Update user assignments (ADMIN, FRANCHISE_MANAGER, MANAGER)
+DELETE /api/locations/:id              — Delete location (ADMIN, FRANCHISE_MANAGER)
+```
+
+### Franchises
+```
+GET    /api/franchises    — List franchises (ADMIN, FRANCHISE_MANAGER)
+GET    /api/franchises/:id — Get franchise by ID (ADMIN, FRANCHISE_MANAGER)
+POST   /api/franchises    — Create franchise (ADMIN only)
+PUT    /api/franchises/:id — Update franchise (ADMIN only)
+DELETE /api/franchises/:id — Delete franchise (ADMIN only)
 ```
 
 ### Surveillance
 ```
-GET    /api/surveillance       — List requests (USER sees own locations only)
+GET    /api/surveillance       — List requests (all authenticated; service scopes by role)
 GET    /api/surveillance/:id   — Get request by ID
-POST   /api/surveillance       — Create request (any authenticated user, must be assigned)
-PATCH  /api/surveillance/:id   — Update status (ADMIN, MANAGER)
-DELETE /api/surveillance/:id   — Delete request (ADMIN only)
+POST   /api/surveillance       — Create request (any authenticated user)
+PATCH  /api/surveillance/:id   — Update status (ADMIN, FRANCHISE_MANAGER, MANAGER, TECHNICIAN)
+DELETE /api/surveillance/:id   — Delete request (service enforces per-role scope)
 ```
 
 ### Stats
 ```
-GET /api/stats           — Dashboard statistics (ADMIN, MANAGER)
+GET /api/stats           — Dashboard statistics (ADMIN, FRANCHISE_MANAGER, MANAGER)
 ```
 
 ---
 
 ## RBAC
 
-| Permission | ADMIN | MANAGER | USER |
-|---|---|---|---|
-| Create/edit users | ✓ | ✓ | ✗ |
-| Delete users | ✓ | ✗ | ✗ |
-| Assign ADMIN role | ✓ | ✗ | ✗ |
-| Create/edit location details | ✓ | ✗ | ✗ |
-| Manage location user assignments | ✓ | ✓ (assigned only) | ✗ |
-| Delete locations | ✓ | ✗ | ✗ |
-| View all locations | ✓ | ✓ | ✗ |
-| View own assigned locations | ✓ | ✓ | ✓ |
-| Create surveillance requests | ✓ | ✓ | ✓ (assigned locations) |
-| Update surveillance status | ✓ | ✓ | ✗ |
-| Delete surveillance requests | ✓ | ✗ | ✗ |
+Five roles: **ADMIN**, **FRANCHISE_MANAGER**, **MANAGER**, **USER**, **TECHNICIAN**
+
+| Permission | ADMIN | FRANCHISE_MANAGER | MANAGER | USER | TECHNICIAN |
+|---|---|---|---|---|---|
+| Create/edit users | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Delete users | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Assign ADMIN role | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Create/edit/delete franchises | ✓ | ✗ | ✗ | ✗ | ✗ |
+| View franchises | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Create/edit/delete location details | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Manage location user assignments | ✓ | ✓ | ✓ (assigned only) | ✗ | ✗ |
+| View all locations | ✓ | ✓ | ✓ | ✗ | ✗ |
+| View own assigned locations | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create surveillance requests | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Update surveillance status | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Delete surveillance requests | ✓ | ✓ | ✓* | ✓* | ✓* |
+
+\* Service enforces scope limits (own requests / assigned locations only).
+
+---
+
+## Database Schema
+
+**Models:** `Franchise`, `User`, `Location`, `UserLocation`, `RefreshToken`, `SurveillanceRequest`, `SurveillanceStatusHistory`
+
+```
+Franchise           id, name, status (ACTIVE|INACTIVE), logoUrl?, ownerId → User
+User                id, name, email (unique), password (hashed), role, isActive, franchiseId?
+Location            id, name, storeNumber, address, city, state, zip, notes?, franchiseId?
+UserLocation        userId + locationId (composite PK), assignedAt
+RefreshToken        id, token (unique), userId, expiresAt
+SurveillanceRequest id, locationId, requestedById, requestingParty, status, footageStartAt,
+                    footageEndAt, cameras (int[]), notes?
+SurveillanceStatusHistory  id, requestId, changedById, fromStatus, toStatus, changedAt
+```
+
+Enums: `Role` (ADMIN | FRANCHISE_MANAGER | MANAGER | USER | TECHNICIAN), `FranchiseStatus` (ACTIVE | INACTIVE), `RequestingParty` (LAW_ENFORCEMENT | INTERNAL | INSURANCE), `RequestStatus` (PENDING | IN_PROGRESS | FULFILLED | DENIED)
 
 ---
 

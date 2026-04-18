@@ -9,6 +9,7 @@ export const createLocationSchema = z.object({
   zip: z.string().min(5, 'Zip code must be at least 5 characters').max(10),
   notes: z.string().max(1000).optional(),
   userIds: z.array(z.string().uuid()).optional().default([]),
+  franchiseId: z.string().uuid().optional().nullable(),
 });
 
 export const updateLocationSchema = z.object({
@@ -20,6 +21,7 @@ export const updateLocationSchema = z.object({
   zip: z.string().min(5).max(10).optional(),
   notes: z.string().max(1000).nullable().optional(),
   userIds: z.array(z.string().uuid()).optional(),
+  franchiseId: z.string().uuid().optional().nullable(),
 });
 
 export const locationsQuerySchema = z.object({
@@ -28,6 +30,7 @@ export const locationsQuerySchema = z.object({
   search: z.string().optional(),
   state: z.string().optional(),
   city: z.string().optional(),
+  franchiseId: z.string().uuid().optional(),
 });
 
 export const updateAssignmentsSchema = z.object({

@@ -5,7 +5,7 @@ import { createUserSchema, updateUserSchema, usersQuerySchema } from './users.sc
 export async function listUsers(req: Request, res: Response, next: NextFunction) {
   try {
     const query = usersQuerySchema.parse(req.query);
-    const result = await usersService.getUsers(query);
+    const result = await usersService.getUsers(query, req.user);
     res.json({ success: true, ...result });
   } catch (err) {
     next(err);

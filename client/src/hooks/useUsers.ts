@@ -10,6 +10,7 @@ export interface UsersParams {
   search?: string;
   role?: string;
   isActive?: boolean;
+  franchiseId?: string;
 }
 
 async function fetchUsers(params: UsersParams): Promise<PaginatedResponse<User>> {

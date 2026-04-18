@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, MapPin } from 'lucide-react';
+import { Trash2, MapPin } from 'lucide-react';
 import { Table } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
 import { Location, Role } from '@/types';
@@ -20,15 +20,17 @@ export function LocationTable({ locations, isLoading, onEdit }: LocationTablePro
   const deleteLocation = useDeleteLocation();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canDelete = currentUser?.role === Role.ADMIN;
 
   const canEditLocation = (loc: Location) => {
     if (currentUser?.role === Role.ADMIN) return true;
+    if (currentUser?.role === Role.FRANCHISE_MANAGER) return true;
     if (currentUser?.role === Role.MANAGER) {
       return loc.users.some((ul) => ul.user.id === currentUser.id);
     }
     return false;
   };
+
+  const canDelete = currentUser?.role === Role.ADMIN || currentUser?.role === Role.FRANCHISE_MANAGER;
 
   const handleDelete = async (id: string) => {
     if (confirmDeleteId === id) {
@@ -51,7 +53,10 @@ export function LocationTable({ locations, isLoading, onEdit }: LocationTablePro
           </div>
           <div className="min-w-0">
             <p className="font-medium text-gray-900 truncate">{loc.name}</p>
-            <p className="text-xs text-gray-500">#{loc.storeNumber}</p>
+            <p className="text-xs text-gray-500">
+              #{loc.storeNumber}
+              {loc.franchise && <span className="ml-1">· {loc.franchise.name}</span>}
+            </p>
           </div>
         </div>
       ),
@@ -90,22 +95,11 @@ export function LocationTable({ locations, isLoading, onEdit }: LocationTablePro
       header: '',
       render: (loc: Location) => (
         <div className="flex items-center gap-2 justify-end">
-          {canEditLocation(loc) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(loc)}
-              className="text-gray-500 hover:text-primary-600"
-              aria-label={`Edit ${loc.name}`}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
           {canDelete && (
             <Button
               variant={confirmDeleteId === loc.id ? 'danger' : 'ghost'}
               size="sm"
-              onClick={() => handleDelete(loc.id)}
+              onClick={(e) => { e.stopPropagation(); handleDelete(loc.id); }}
               isLoading={deleteLocation.isPending && confirmDeleteId === loc.id}
               aria-label={confirmDeleteId === loc.id ? 'Confirm delete' : `Delete ${loc.name}`}
             >
@@ -127,6 +121,7 @@ export function LocationTable({ locations, isLoading, onEdit }: LocationTablePro
       isLoading={isLoading}
       keyExtractor={(l) => l.id}
       emptyMessage="No locations found. Try adjusting your search."
+      onRowClick={(loc) => { if (canEditLocation(loc)) onEdit(loc); }}
     />
   );
 }

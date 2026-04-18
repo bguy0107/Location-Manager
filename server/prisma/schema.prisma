@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Franchise {
+  id        String          @id @default(uuid())
+  name      String
+  status    FranchiseStatus @default(ACTIVE)
+  logoUrl   String?
+  ownerId   String
+  owner     User            @relation("FranchiseOwner", fields: [ownerId], references: [id])
+  managers  User[]          @relation("FranchiseManagers")
+  locations Location[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@map("franchises")
+}
+
 model User {
   id                        String                      @id @default(uuid())
   name                      String
@@ -14,6 +29,9 @@ model User {
   password                  String
   role                      Role                        @default(USER)
   isActive                  Boolean                     @default(true)
+  franchiseId               String?
+  franchise                 Franchise?                  @relation("FranchiseManagers", fields: [franchiseId], references: [id])
+  ownedFranchises           Franchise[]                 @relation("FranchiseOwner")
   createdAt                 DateTime                    @default(now())
   updatedAt                 DateTime                    @updatedAt
   locations                 UserLocation[]
@@ -33,6 +51,8 @@ model Location {
   state                String
   zip                  String
   notes                String?
+  franchiseId          String?
+  franchise            Franchise?             @relation(fields: [franchiseId], references: [id])
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
   users                UserLocation[]
@@ -98,9 +118,15 @@ model SurveillanceStatusHistory {
 
 enum Role {
   ADMIN
+  FRANCHISE_MANAGER
   MANAGER
   USER
   TECHNICIAN
+}
+
+enum FranchiseStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum RequestingParty {

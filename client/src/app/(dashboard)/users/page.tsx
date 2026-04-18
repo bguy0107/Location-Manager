@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Plus, Users } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
+import { useFranchises } from '@/hooks/useFranchises';
 import { UserTable } from '@/components/users/UserTable';
 import { UserModal } from '@/components/users/UserModal';
 import { SearchBar } from '@/components/ui/SearchBar';
@@ -17,8 +18,12 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [franchiseFilter, setFranchiseFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | undefined>();
+
+  const isAdmin = currentUser?.role === Role.ADMIN;
+  const isFranchiseManager = currentUser?.role === Role.FRANCHISE_MANAGER;
 
   const { data, isLoading } = useUsers({
     page,
@@ -26,10 +31,12 @@ export default function UsersPage() {
     search: search || undefined,
     role: roleFilter || undefined,
     isActive: statusFilter === '' ? undefined : statusFilter === 'true',
+    franchiseId: franchiseFilter || undefined,
   });
 
-  const canCreate =
-    currentUser?.role === Role.ADMIN || currentUser?.role === Role.MANAGER;
+  const { data: franchisesData } = useFranchises({ limit: 100 });
+
+  const canCreate = isAdmin || isFranchiseManager || currentUser?.role === Role.MANAGER;
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -70,13 +77,25 @@ export default function UsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <SearchBar
           value={search}
           onChange={handleSearch}
           placeholder="Search by name or email..."
-          className="flex-1"
+          className="flex-1 min-w-48"
         />
+        {isAdmin && franchisesData && franchisesData.data.length > 0 && (
+          <select
+            value={franchiseFilter}
+            onChange={(e) => { setFranchiseFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="">All franchises</option>
+            {franchisesData.data.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        )}
         <select
           value={roleFilter}
           onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
@@ -84,6 +103,7 @@ export default function UsersPage() {
         >
           <option value="">All roles</option>
           <option value="ADMIN">Admin</option>
+          <option value="FRANCHISE_MANAGER">Franchise Manager</option>
           <option value="MANAGER">Manager</option>
           <option value="USER">User</option>
           <option value="TECHNICIAN">Technician</option>
@@ -100,27 +120,15 @@ export default function UsersPage() {
       </div>
 
       {/* Table */}
-      <UserTable
-        users={data?.data ?? []}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-      />
+      <UserTable users={data?.data ?? []} isLoading={isLoading} onEdit={handleEdit} />
 
       {/* Pagination */}
       {data && data.totalPages > 1 && (
-        <Pagination
-          page={page}
-          totalPages={data.totalPages}
-          onPageChange={setPage}
-        />
+        <Pagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
       )}
 
       {/* Modal */}
-      <UserModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        user={editingUser}
-      />
+      <UserModal isOpen={isModalOpen} onClose={handleCloseModal} user={editingUser} />
     </div>
   );
 }

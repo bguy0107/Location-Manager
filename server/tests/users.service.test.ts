@@ -53,7 +53,7 @@ describe('usersService.getUsers', () => {
     (mockPrisma.user.findMany as jest.Mock).mockResolvedValue([mockUser]);
     (mockPrisma.user.count as jest.Mock).mockResolvedValue(1);
 
-    const result = await usersService.getUsers({ page: 1, limit: 20 });
+    const result = await usersService.getUsers({ page: 1, limit: 20 }, adminActor);
 
     expect(result.data).toHaveLength(1);
     expect(result.total).toBe(1);

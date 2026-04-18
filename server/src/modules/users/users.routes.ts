@@ -6,18 +6,19 @@ import * as controller from './users.controller';
 
 export const usersRoutes = Router();
 
-// All routes require authentication
 usersRoutes.use(authenticate);
 
-// GET /api/users/me — any authenticated user can get their own profile
 usersRoutes.get('/me', controller.getMe);
 
-// TECHNICIAN has read-only access; create/update/delete require ADMIN or MANAGER
-usersRoutes.get('/', requireRole(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN), controller.listUsers);
-usersRoutes.post('/', requireRole(Role.ADMIN, Role.MANAGER), controller.createUser);
+usersRoutes.get(
+  '/',
+  requireRole(Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER, Role.TECHNICIAN),
+  controller.listUsers,
+);
+usersRoutes.post('/', requireRole(Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER), controller.createUser);
 
 usersRoutes
   .route('/:id')
-  .get(requireRole(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN), controller.getUser)
-  .put(requireRole(Role.ADMIN, Role.MANAGER), controller.updateUser)
-  .delete(requireRole(Role.ADMIN), controller.deleteUser);
+  .get(requireRole(Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER, Role.TECHNICIAN), controller.getUser)
+  .put(requireRole(Role.ADMIN, Role.FRANCHISE_MANAGER, Role.MANAGER), controller.updateUser)
+  .delete(requireRole(Role.ADMIN, Role.FRANCHISE_MANAGER), controller.deleteUser);

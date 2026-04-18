@@ -49,11 +49,13 @@ export async function findMany(params: {
   skip: number;
   take: number;
   userId?: string;
+  franchiseId?: string;
   locationId?: string;
   status?: RequestStatus;
 }) {
   const where: Prisma.SurveillanceRequestWhereInput = {
     ...(params.userId && { location: { users: { some: { userId: params.userId } } } }),
+    ...(params.franchiseId && { location: { franchiseId: params.franchiseId } }),
     ...(params.locationId && { locationId: params.locationId }),
     ...(params.status && { status: params.status }),
   };
@@ -83,6 +85,14 @@ export async function isUserAssignedToLocation(userId: string, locationId: strin
   const row = await prisma.userLocation.findUnique({
     where: { userId_locationId: { userId, locationId } },
     select: { userId: true },
+  });
+  return row !== null;
+}
+
+export async function isLocationInFranchise(locationId: string, franchiseId: string) {
+  const row = await prisma.location.findFirst({
+    where: { id: locationId, franchiseId },
+    select: { id: true },
   });
   return row !== null;
 }

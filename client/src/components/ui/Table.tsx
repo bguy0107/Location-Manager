@@ -14,6 +14,7 @@ interface TableProps<T> {
   isLoading?: boolean;
   emptyMessage?: string;
   keyExtractor: (row: T) => string;
+  onRowClick?: (row: T) => void;
 }
 
 export function Table<T>({
@@ -22,6 +23,7 @@ export function Table<T>({
   isLoading,
   emptyMessage = 'No data found',
   keyExtractor,
+  onRowClick,
 }: TableProps<T>) {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -66,7 +68,8 @@ export function Table<T>({
             data.map((row) => (
               <tr
                 key={keyExtractor(row)}
-                className="hover:bg-gray-50 transition-colors"
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={cn('hover:bg-gray-50 transition-colors', onRowClick && 'cursor-pointer')}
               >
                 {columns.map((col) => (
                   <td
