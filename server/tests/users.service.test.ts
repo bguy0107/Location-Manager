@@ -102,6 +102,20 @@ describe('usersService.createUser', () => {
     const adminDto = { ...createDto, role: Role.ADMIN };
     await expect(usersService.createUser(adminDto, managerActor)).rejects.toThrow(ForbiddenError);
   });
+
+  it('throws ForbiddenError when manager tries to create technician', async () => {
+    const techDto = { ...createDto, role: Role.TECHNICIAN };
+    await expect(usersService.createUser(techDto, managerActor)).rejects.toThrow(ForbiddenError);
+  });
+
+  it('allows admin to create technician', async () => {
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    const techUser = { ...mockUser, role: Role.TECHNICIAN };
+    (mockPrisma.user.create as jest.Mock).mockResolvedValue(techUser);
+
+    const result = await usersService.createUser({ ...createDto, role: Role.TECHNICIAN }, adminActor);
+    expect(result.role).toBe(Role.TECHNICIAN);
+  });
 });
 
 describe('usersService.deleteUser', () => {
@@ -141,6 +155,21 @@ describe('usersService.updateUser - MANAGER restrictions', () => {
     (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(adminUser);
     await expect(
       usersService.updateUser('admin-id', { name: 'New Name' }, managerActor)
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it('throws ForbiddenError when manager tries to assign technician role', async () => {
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+    await expect(
+      usersService.updateUser('user-1', { role: Role.TECHNICIAN }, managerActor)
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it('throws ForbiddenError when manager tries to modify a technician user', async () => {
+    const techUser = { ...mockUser, role: Role.TECHNICIAN };
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(techUser);
+    await expect(
+      usersService.updateUser('tech-id', { name: 'New Name' }, managerActor)
     ).rejects.toThrow(ForbiddenError);
   });
 });

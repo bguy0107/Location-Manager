@@ -11,7 +11,7 @@ import { buildPaginatedResponse } from '../../utils/pagination';
 
 export async function getSurveillanceRequests(query: SurveillanceQuery, actor: AuthenticatedUser) {
   const skip = (query.page - 1) * query.limit;
-  const userId = actor.role === Role.USER ? actor.id : undefined;
+  const userId = (actor.role === Role.USER || actor.role === Role.TECHNICIAN) ? actor.id : undefined;
 
   const { data, total } = await repo.findMany({
     skip,
@@ -28,7 +28,7 @@ export async function getSurveillanceRequestById(id: string, actor: Authenticate
   const request = await repo.findById(id);
   if (!request) throw new NotFoundError('Surveillance request');
 
-  if (actor.role === Role.USER) {
+  if (actor.role === Role.USER || actor.role === Role.TECHNICIAN) {
     const inScope = await repo.isRequestInUserLocations(id, actor.id);
     if (!inScope) throw new NotFoundError('Surveillance request');
   }
@@ -40,7 +40,7 @@ export async function createSurveillanceRequest(
   dto: CreateSurveillanceRequestDto,
   actor: AuthenticatedUser
 ) {
-  if (actor.role === Role.USER || actor.role === Role.MANAGER) {
+  if (actor.role === Role.USER || actor.role === Role.MANAGER || actor.role === Role.TECHNICIAN) {
     const assigned = await repo.isUserAssignedToLocation(actor.id, dto.locationId);
     if (!assigned) throw new ForbiddenError();
   }
@@ -63,6 +63,12 @@ export async function updateSurveillanceStatus(
 ) {
   const existing = await repo.findById(id);
   if (!existing) throw new NotFoundError('Surveillance request');
+
+  if (actor.role === Role.TECHNICIAN) {
+    const inScope = await repo.isRequestInUserLocations(id, actor.id);
+    if (!inScope) throw new ForbiddenError();
+  }
+
   return repo.updateStatus(id, dto.status as RequestStatus, actor.id, existing.status);
 }
 

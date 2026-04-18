@@ -7,8 +7,8 @@ import { buildPaginatedResponse } from '../../utils/pagination';
 export async function getLocations(query: LocationsQuery, actor: AuthenticatedUser) {
   const skip = (query.page - 1) * query.limit;
 
-  // USER role only sees their assigned locations
-  const userId = actor.role === Role.USER ? actor.id : undefined;
+  // USER and TECHNICIAN only see their assigned locations
+  const userId = (actor.role === Role.USER || actor.role === Role.TECHNICIAN) ? actor.id : undefined;
 
   const { data, total } = await locationsRepo.findMany({
     skip,
@@ -26,8 +26,8 @@ export async function getLocationById(id: string, actor: AuthenticatedUser) {
   const location = await locationsRepo.findById(id);
   if (!location) throw new NotFoundError('Location');
 
-  // USER can only view locations they're assigned to
-  if (actor.role === Role.USER) {
+  // USER and TECHNICIAN can only view locations they're assigned to
+  if (actor.role === Role.USER || actor.role === Role.TECHNICIAN) {
     const isAssigned = location.users.some((ul) => ul.user.id === actor.id);
     if (!isAssigned) throw new NotFoundError('Location');
   }

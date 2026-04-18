@@ -20,6 +20,7 @@ const roleVariant: Record<Role, 'info' | 'warning' | 'default'> = {
   ADMIN: 'info',
   MANAGER: 'warning',
   USER: 'default',
+  TECHNICIAN: 'default',
 };
 
 export function UserTable({ users, isLoading, onEdit }: UserTableProps) {

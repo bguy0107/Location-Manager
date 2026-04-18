@@ -12,12 +12,12 @@ usersRoutes.use(authenticate);
 // GET /api/users/me — any authenticated user can get their own profile
 usersRoutes.get('/me', controller.getMe);
 
-// Routes restricted to ADMIN and MANAGER
-usersRoutes.get('/', requireRole(Role.ADMIN, Role.MANAGER), controller.listUsers);
+// TECHNICIAN has read-only access; create/update/delete require ADMIN or MANAGER
+usersRoutes.get('/', requireRole(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN), controller.listUsers);
 usersRoutes.post('/', requireRole(Role.ADMIN, Role.MANAGER), controller.createUser);
 
 usersRoutes
   .route('/:id')
-  .get(requireRole(Role.ADMIN, Role.MANAGER), controller.getUser)
+  .get(requireRole(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN), controller.getUser)
   .put(requireRole(Role.ADMIN, Role.MANAGER), controller.updateUser)
-  .delete(requireRole(Role.ADMIN), controller.deleteUser); // Only ADMIN can delete
+  .delete(requireRole(Role.ADMIN), controller.deleteUser);

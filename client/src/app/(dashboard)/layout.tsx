@@ -28,7 +28,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/users', label: 'Users', icon: Users, roles: [Role.ADMIN, Role.MANAGER] },
+  { href: '/users', label: 'Users', icon: Users, roles: [Role.ADMIN, Role.MANAGER, Role.TECHNICIAN] },
   { href: '/locations', label: 'Location Administration', icon: MapPin },
   { href: '/surveillance', label: 'Surveillance', icon: Camera },
 ];

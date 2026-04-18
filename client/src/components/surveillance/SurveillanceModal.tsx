@@ -54,7 +54,9 @@ export function SurveillanceModal({ isOpen, onClose, request }: SurveillanceModa
 
   const isViewing = !!request;
   const canUpdateStatus =
-    currentUser?.role === Role.ADMIN || currentUser?.role === Role.MANAGER;
+    currentUser?.role === Role.ADMIN ||
+    currentUser?.role === Role.MANAGER ||
+    currentUser?.role === Role.TECHNICIAN;
 
   const displayed = detail ?? request;
 

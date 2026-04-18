@@ -8,15 +8,16 @@ export const surveillanceRoutes = Router();
 
 surveillanceRoutes.use(authenticate);
 
-// All authenticated users can list and create
+// All authenticated users can list and view
 surveillanceRoutes.get('/', controller.listRequests);
 surveillanceRoutes.get('/:id', controller.getRequest);
+
 surveillanceRoutes.post('/', controller.createRequest);
 
-// Only MANAGER and ADMIN can update status
+// ADMIN, MANAGER, and TECHNICIAN can update status
 surveillanceRoutes.patch(
   '/:id',
-  requireRole(Role.ADMIN, Role.MANAGER),
+  requireRole(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN),
   controller.updateStatus
 );
 

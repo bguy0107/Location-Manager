@@ -96,7 +96,7 @@ export function UserForm({ user, onSubmit, isLoading }: UserFormProps) {
   const isManagerActor = currentUser?.role === Role.MANAGER;
   const availableRoles = isManagerActor
     ? [Role.MANAGER, Role.USER]
-    : [Role.ADMIN, Role.MANAGER, Role.USER];
+    : [Role.ADMIN, Role.MANAGER, Role.USER, Role.TECHNICIAN];
 
   return (
     <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">

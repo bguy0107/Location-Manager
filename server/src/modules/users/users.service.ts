@@ -28,9 +28,9 @@ export async function getUserById(id: string) {
 }
 
 export async function createUser(dto: CreateUserDto, actor: AuthenticatedUser) {
-  // MANAGER cannot create ADMIN users
-  if (actor.role === Role.MANAGER && dto.role === Role.ADMIN) {
-    throw new ForbiddenError('Managers cannot create admin users');
+  // MANAGER cannot create ADMIN or TECHNICIAN users
+  if (actor.role === Role.MANAGER && (dto.role === Role.ADMIN || dto.role === Role.TECHNICIAN)) {
+    throw new ForbiddenError('Managers cannot create admin or technician users');
   }
 
   const existing = await usersRepo.findByEmail(dto.email);
@@ -52,13 +52,13 @@ export async function updateUser(id: string, dto: UpdateUserDto, actor: Authenti
   const existing = await usersRepo.findById(id);
   if (!existing) throw new NotFoundError('User');
 
-  // MANAGER cannot change a user to ADMIN or modify an ADMIN
+  // MANAGER cannot change a user to ADMIN/TECHNICIAN or modify an ADMIN/TECHNICIAN
   if (actor.role === Role.MANAGER) {
-    if (dto.role === Role.ADMIN) {
-      throw new ForbiddenError('Managers cannot assign admin role');
+    if (dto.role === Role.ADMIN || dto.role === Role.TECHNICIAN) {
+      throw new ForbiddenError('Managers cannot assign admin or technician role');
     }
-    if (existing.role === Role.ADMIN) {
-      throw new ForbiddenError('Managers cannot modify admin users');
+    if (existing.role === Role.ADMIN || existing.role === Role.TECHNICIAN) {
+      throw new ForbiddenError('Managers cannot modify admin or technician users');
     }
   }
 

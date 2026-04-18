@@ -30,6 +30,7 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 const adminActor = { id: 'admin-id', email: 'admin@test.com', role: Role.ADMIN };
 const managerActor = { id: 'manager-id', email: 'manager@test.com', role: Role.MANAGER };
 const userActor = { id: 'user-id', email: 'user@test.com', role: Role.USER };
+const technicianActor = { id: 'tech-id', email: 'tech@test.com', role: Role.TECHNICIAN };
 
 const mockRequest = {
   id: 'req-1',
@@ -100,6 +101,21 @@ describe('surveillanceService.getSurveillanceRequests', () => {
       expect.objectContaining({ where: {} })
     );
   });
+
+  it('filters by userId for TECHNICIAN role', async () => {
+    (mockPrisma.surveillanceRequest.findMany as jest.Mock).mockResolvedValue([]);
+    (mockPrisma.surveillanceRequest.count as jest.Mock).mockResolvedValue(0);
+
+    await surveillanceService.getSurveillanceRequests({ page: 1, limit: 20 }, technicianActor);
+
+    expect(mockPrisma.surveillanceRequest.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          location: { users: { some: { userId: 'tech-id' } } },
+        }),
+      })
+    );
+  });
 });
 
 describe('surveillanceService.getSurveillanceRequestById', () => {
@@ -134,6 +150,24 @@ describe('surveillanceService.getSurveillanceRequestById', () => {
 
     await expect(
       surveillanceService.getSurveillanceRequestById('req-1', userActor)
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it('returns request for TECHNICIAN when their location matches', async () => {
+    (mockPrisma.surveillanceRequest.findUnique as jest.Mock).mockResolvedValue(mockRequest);
+    (mockPrisma.surveillanceRequest.findFirst as jest.Mock).mockResolvedValue({ id: 'req-1' });
+
+    const result = await surveillanceService.getSurveillanceRequestById('req-1', technicianActor);
+
+    expect(result.id).toBe('req-1');
+  });
+
+  it('throws NotFoundError for TECHNICIAN when request is not in their locations', async () => {
+    (mockPrisma.surveillanceRequest.findUnique as jest.Mock).mockResolvedValue(mockRequest);
+    (mockPrisma.surveillanceRequest.findFirst as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      surveillanceService.getSurveillanceRequestById('req-1', technicianActor)
     ).rejects.toThrow(NotFoundError);
   });
 });
@@ -181,6 +215,23 @@ describe('surveillanceService.createSurveillanceRequest', () => {
       surveillanceService.createSurveillanceRequest(createDto, managerActor)
     ).rejects.toThrow(ForbiddenError);
   });
+
+  it('creates request for TECHNICIAN when assigned to location', async () => {
+    (mockPrisma.userLocation.findUnique as jest.Mock).mockResolvedValue({ userId: 'tech-id' });
+    (mockPrisma.surveillanceRequest.create as jest.Mock).mockResolvedValue(mockRequest);
+
+    const result = await surveillanceService.createSurveillanceRequest(createDto, technicianActor);
+
+    expect(result.id).toBe('req-1');
+  });
+
+  it('throws ForbiddenError for TECHNICIAN when not assigned to location', async () => {
+    (mockPrisma.userLocation.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      surveillanceService.createSurveillanceRequest(createDto, technicianActor)
+    ).rejects.toThrow(ForbiddenError);
+  });
 });
 
 describe('surveillanceService.updateSurveillanceStatus', () => {
@@ -205,6 +256,31 @@ describe('surveillanceService.updateSurveillanceStatus', () => {
     await expect(
       surveillanceService.updateSurveillanceStatus('nonexistent', { status: 'IN_PROGRESS' }, adminActor)
     ).rejects.toThrow(NotFoundError);
+  });
+
+  it('updates status for TECHNICIAN when assigned to the request location', async () => {
+    const updated = { ...mockRequest, status: 'IN_PROGRESS' as const };
+    (mockPrisma.surveillanceRequest.findUnique as jest.Mock).mockResolvedValue(mockRequest);
+    (mockPrisma.surveillanceRequest.findFirst as jest.Mock).mockResolvedValue({ id: 'req-1' });
+    (mockPrisma.surveillanceStatusHistory.create as jest.Mock).mockResolvedValue({});
+    (mockPrisma.surveillanceRequest.update as jest.Mock).mockResolvedValue(updated);
+
+    const result = await surveillanceService.updateSurveillanceStatus(
+      'req-1',
+      { status: 'IN_PROGRESS' },
+      technicianActor
+    );
+
+    expect(result.status).toBe('IN_PROGRESS');
+  });
+
+  it('throws ForbiddenError for TECHNICIAN when not assigned to the request location', async () => {
+    (mockPrisma.surveillanceRequest.findUnique as jest.Mock).mockResolvedValue(mockRequest);
+    (mockPrisma.surveillanceRequest.findFirst as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      surveillanceService.updateSurveillanceStatus('req-1', { status: 'IN_PROGRESS' }, technicianActor)
+    ).rejects.toThrow(ForbiddenError);
   });
 });
 

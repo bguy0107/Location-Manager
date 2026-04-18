@@ -86,6 +86,7 @@ export default function UsersPage() {
           <option value="ADMIN">Admin</option>
           <option value="MANAGER">Manager</option>
           <option value="USER">User</option>
+          <option value="TECHNICIAN">Technician</option>
         </select>
         <select
           value={statusFilter}
